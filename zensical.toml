@@ -5,3 +5,13 @@ docs_dir = "docs"
 site_dir = "site"
 use_directory_urls = true
 extra_css = ["stylesheets/course.css"]
+nav = [
+  "index.md",
+  "course.md",
+  "autonomous-agents.md",
+  "lab-repository.md",
+  "local-models.md",
+  "ollama-vscode.md",
+  "repo-triage.md",
+  "sources.md",
+]
