@@ -15,3 +15,18 @@ nav = [
   "repo-triage.md",
   "sources.md",
 ]
+
+[project.theme]
+[[project.theme.palette]]
+scheme = "default"
+primary = "teal"
+accent = "teal"
+toggle.icon = "lucide/moon"
+toggle.name = "Включить тёмную тему"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "teal"
+accent = "teal"
+toggle.icon = "lucide/sun"
+toggle.name = "Включить светлую тему"

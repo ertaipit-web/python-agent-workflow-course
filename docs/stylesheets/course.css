@@ -16,6 +16,19 @@
   --md-typeset-a-color: #087f78;
 }
 
+[data-md-color-scheme="slate"] {
+  --course-ink: #e2eeeb;
+  --course-muted: #b5c8c3;
+  --course-line: #344b4c;
+  --course-teal: #75ddca;
+  --course-panel: #1c3034;
+  --md-primary-fg-color: #12343a;
+  --md-primary-fg-color--light: #1b5557;
+  --md-primary-fg-color--dark: #0c272c;
+  --md-accent-fg-color: #75ddca;
+  --md-typeset-a-color: #75ddca;
+}
+
 .md-header {
   box-shadow: 0 1px 0 rgb(18 52 58 / 9%);
 }
@@ -222,7 +235,7 @@
   padding: 1.15rem;
   border: 1px solid var(--course-line);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--md-default-bg-color);
 }
 
 .info-card h3,
@@ -262,7 +275,7 @@
   padding: 1.25rem;
   border: 1px solid var(--course-line);
   border-radius: 0.8rem;
-  background: #fff;
+  background: var(--md-default-bg-color);
   color: inherit;
   text-decoration: none !important;
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
@@ -277,6 +290,11 @@
 .route-card--featured {
   border-color: #bdded5;
   background: linear-gradient(145deg, #f0faf6, #fff 72%);
+}
+
+[data-md-color-scheme="slate"] .route-card--featured {
+  border-color: #426b66;
+  background: linear-gradient(145deg, #1e3a3b, #18282c 72%);
 }
 
 .route-card .route-label {
@@ -367,11 +385,26 @@
   padding: 0.55rem 0.8rem;
   border: 1px solid var(--course-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--md-default-bg-color);
   color: var(--course-teal);
   font-size: 0.75rem;
   font-weight: 650;
   text-decoration: none;
+}
+
+[data-md-color-scheme="slate"] .md-content__inner > .course-title,
+[data-md-color-scheme="slate"] .course-hero {
+  background:
+    radial-gradient(ellipse at 84% 0%, rgb(101 224 194 / 12%), transparent 38%),
+    linear-gradient(120deg, #0b1c21 0%, #102e33 58%, #12443e 100%);
+}
+
+[data-md-color-scheme="slate"] .route-card:hover {
+  border-color: #75a99e;
+}
+
+[data-md-color-scheme="slate"] .resource-links a:hover {
+  border-color: #75a99e;
 }
 
 .resource-links a:hover {
