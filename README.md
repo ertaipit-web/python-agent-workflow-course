@@ -1,4 +1,6 @@
-# Документация курса
+# Agent Forge
+
+Продвинутый практикум по мультиагентной разработке на Python.
 
 Материалы курса оформлены как Zensical-сайт.
 
@@ -7,9 +9,9 @@
 Не открывайте `site/course/` как `file://...`: при стандартной настройке Zensical используются URL страниц вида `/course/`, которым нужен HTTP-сервер. Из корня проекта запустите preview-сервер в PowerShell:
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install zensical
+if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
+.\.venv\Scripts\python.exe -m pip install "zensical==0.0.67"
+.\.venv\Scripts\python.exe -m pip install -e ".\labs\starter-repo[dev]"
 .\.venv\Scripts\python.exe -m zensical serve
 ```
 
@@ -21,11 +23,32 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m zensical build --strict
 ```
 
+Если виртуальное окружение `.venv` уже настроено, не создавайте его заново; установите в него только отсутствующие зависимости.
+
 Готовый сайт создаётся в `site/`. Эта директория генерируется командой build и не является исходником документации. Для локального просмотра используйте `zensical serve`, а не открытие файлов из `site/` напрямую.
+
+## GitHub Pages
+
+Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) проверяет учебный Python-проект и собирает сайт на pull request в `main`; после каждого push/merge в `main` он также публикует сайт в GitHub Pages. Один только локальный commit workflow не запускает — нужен push. Базовый URL проекта определяется GitHub Pages автоматически.
+
+Чтобы включить публикацию в GitHub:
+
+1. Создайте или подготовьте GitHub-репозиторий для проекта.
+2. Откройте **Settings → Pages** и установите **Build and deployment → Source: GitHub Actions**.
+3. Подключите local repo к GitHub remote и отправьте ветку `main`.
+4. Проверьте выполнение workflow во вкладке **Actions**. После успешного deploy URL сайта появится в deployment `github-pages`.
+
+Пока GitHub remote не настроен, автоматическую публикацию проверить нельзя; локально проверяйте сайт командой `zensical build --strict`.
 
 ## Структура
 
 - `zensical.toml` — настройки проекта.
 - `docs/index.md` — главная страница и карта курса.
-- `docs/course.md` — основной 8-недельный практикум.
-- `docs/autonomous-agents.md` — дополнительный 6-недельный трек по автономным агентам.
+- `docs/course.md` — основной 8-недельный практикум с обязательным ядром и необязательными расширениями.
+- `docs/autonomous-agents.md` — каталог из 6 модулей по автономным агентам; выбирайте 2–3 по своему use case.
+- `docs/ollama-vscode.md` — справочник подключения Ollama к VS Code Chat и Kilo.
+- `docs/local-models.md` — подробная лабораторная по локальным моделям и интеграции.
+- `docs/sources.md` — источники и материалы, использованные при подготовке программы.
+- `docs/lab-repository.md` — как открыть вложенный учебный проект.
+- `labs/starter-repo/` — автономный учебный Python-проект с issue и pytest-тестами.
+- `.github/workflows/pages.yml` — проверка, сборка и публикация GitHub Pages.

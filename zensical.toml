@@ -1,6 +1,6 @@
 [project]
 site_name = "Мультиагентная разработка на Python"
-site_description = "Продвинутый практикум по мультиагентным системам, локальным моделям и автономным coding agents"
+site_description = "Agent Forge — продвинутый практикум по мультиагентной разработке на Python"
 docs_dir = "docs"
 site_dir = "site"
 use_directory_urls = true
