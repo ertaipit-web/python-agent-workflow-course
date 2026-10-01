@@ -1,0 +1,16 @@
+{
+  "include": [
+    "labs/starter-repo/src",
+    "labs/starter-repo/tests",
+    "labs/repo-triage/src",
+    "labs/repo-triage/tests",
+    "labs/repo-triage/sample-repo/src",
+    "labs/repo-triage/sample-repo/tests"
+  ],
+  "extraPaths": [
+    "labs/starter-repo/src",
+    "labs/repo-triage/src",
+    "labs/repo-triage/sample-repo/src"
+  ],
+  "pythonVersion": "3.11"
+}

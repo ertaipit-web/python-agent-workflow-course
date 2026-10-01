@@ -65,6 +65,16 @@ jobs:
       - name: Test starter repository
         run: python -m pytest "./labs/starter-repo/tests"
 
+      - name: Install Repo Triage test dependencies
+        run: python -m pip install -e "./labs/repo-triage[dev]"
+
+      - name: Test Repo Triage
+        run: python -m pytest "./labs/repo-triage/tests"
+
+      - name: Test Repo Triage sample repository
+        working-directory: ./labs/repo-triage/sample-repo
+        run: python -m pytest
+
       - name: Build Zensical site
         run: python -m zensical build --strict
 

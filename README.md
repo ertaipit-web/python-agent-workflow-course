@@ -2,6 +2,8 @@
 
 Продвинутый практикум по мультиагентной разработке на Python.
 
+🌐 **[Открыть сайт курса](https://ertaipit-web.github.io/python-agent-workflow-course/)**
+
 Материалы курса оформлены как Zensical-сайт.
 
 ## Локальный просмотр в Windows
@@ -12,6 +14,7 @@
 if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
 .\.venv\Scripts\python.exe -m pip install "zensical==0.0.67"
 .\.venv\Scripts\python.exe -m pip install -e ".\labs\starter-repo[dev]"
+.\.venv\Scripts\python.exe -m pip install -e ".\labs\repo-triage[dev]"
 .\.venv\Scripts\python.exe -m zensical serve
 ```
 
@@ -29,7 +32,7 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
 
 ## GitHub Pages
 
-Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) проверяет учебный Python-проект и собирает сайт на pull request в `main`; после каждого push/merge в `main` он также публикует сайт в GitHub Pages. Один только локальный commit workflow не запускает — нужен push. Базовый URL проекта определяется GitHub Pages автоматически.
+Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) проверяет оба учебных Python-проекта и собирает сайт на pull request в `main`; после каждого push/merge в `main` он также публикует сайт в GitHub Pages. Один только локальный commit workflow не запускает — нужен push. Базовый URL проекта определяется GitHub Pages автоматически.
 
 Чтобы включить публикацию в GitHub:
 
@@ -38,7 +41,7 @@ Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) прове
 3. Подключите local repo к GitHub remote и отправьте ветку `main`.
 4. Проверьте выполнение workflow во вкладке **Actions**. После успешного deploy URL сайта появится в deployment `github-pages`.
 
-Пока GitHub remote не настроен, автоматическую публикацию проверить нельзя; локально проверяйте сайт командой `zensical build --strict`.
+Опубликованный сайт: **[ertaipit-web.github.io/python-agent-workflow-course](https://ertaipit-web.github.io/python-agent-workflow-course/)**. Локальную сборку можно проверить командой `zensical build --strict`.
 
 ## Структура
 
@@ -49,6 +52,7 @@ Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) прове
 - `docs/ollama-vscode.md` — справочник подключения Ollama к VS Code Chat и Kilo.
 - `docs/local-models.md` — подробная лабораторная по локальным моделям и интеграции.
 - `docs/sources.md` — источники и материалы, использованные при подготовке программы.
-- `docs/lab-repository.md` — как открыть вложенный учебный проект.
+- `docs/lab-repository.md` — как открыть учебные проекты и лабораторные.
 - `labs/starter-repo/` — автономный учебный Python-проект с issue и pytest-тестами.
+- `labs/repo-triage/` — локальная утилита для разбора issue и инвентаризации Python-репозитория.
 - `.github/workflows/pages.yml` — проверка, сборка и публикация GitHub Pages.
