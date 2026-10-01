@@ -19,6 +19,17 @@
 - [Microsoft Agent Framework overview](https://learn.microsoft.com/en-us/agent-framework/overview/) — агентные и мультиагентные workflow; использован для сравнения современного framework-подхода.
 - [AutoGen documentation — Microsoft](https://microsoft.github.io/autogen/stable/) — event-driven и распределённые мультиагентные workflow; включён в обзор альтернатив.
 
+## Anthropic — current agent engineering
+
+Новые инженерные материалы Anthropic 2025–2026 годов дополняют базовые workflow patterns конкретными практиками для context, tools, долгих запусков и containment:
+
+- [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) — контекст как информация и состояние, доступные модели; ограниченный attention budget и отбор релевантного контекста.
+- [Writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents) — tool как интерфейс агента со средой: ясная ответственность, входы, выходы и пригодность к использованию.
+- [Advanced tool use](https://www.anthropic.com/engineering/advanced-tool-use) — поиск и загрузка инструментов по мере необходимости вместо помещения всего большого набора определений в каждый вызов.
+- [Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) — долгие coding runs, инкрементальный прогресс, handoff-артефакты и восстановление между сессиями.
+- [How we contain Claude](https://www.anthropic.com/engineering/how-we-contain-claude) — ограничение blast radius через техническое containment, sandboxing и управление доступом; human approval не заменяет эти меры.
+- [Building effective agents](https://www.anthropic.com/research/building-effective-agents) — базовые workflow patterns (2024). Это фундаментальный материал, а не руководство по сегодняшнему tooling: более новые статьи отражают дальнейшее развитие agent engineering.
+
 ## Локальные модели и интеграция с инструментами
 
 - [Ollama: загрузка](https://ollama.com/download) и [FAQ](https://docs.ollama.com/faq) — установка, работа локального сервера и типовые вопросы.
