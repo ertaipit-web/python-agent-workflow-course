@@ -120,7 +120,7 @@
 
 /* 4. Headings --------------------------------------------------------------- */
 .md-content__inner > :is(h1, h2, h3, h4, h5, h6):not([class]),
-.md-content__inner > h2.course-section {
+.md-content__inner > :is(h2, h3).course-section {
   color: var(--course-heading);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -145,6 +145,12 @@
   --course-h2: clamp(1.28rem, 1.15rem + 0.6vw, 1.5rem);
 
   font-size: var(--course-h2);
+}
+
+/* Неделя — H2, её разделы — H3. Баннеры секций остаются на уровне H3,
+   чтобы не конкурировать с заголовком недели, но сохранять свой цвет и форму. */
+.md-content__inner > h3.course-section {
+  font-size: 1.1rem;
 }
 
 .md-content__inner > h2:not([class]) {
@@ -383,7 +389,7 @@
 
 /* Секционные баннеры: Практика / Результат / Ядро / Расширение.
    Каждый тип отличается цветом И формой левой границы. */
-.md-content__inner > h2.course-section {
+.md-content__inner > :is(h2, h3).course-section {
   --course-banner-accent: var(--course-teal);
   --course-banner-bg: var(--course-panel);
 
@@ -395,18 +401,18 @@
   box-shadow: inset 4px 0 0 var(--course-banner-accent);
 }
 
-.md-content__inner > h2.course-section--core {
+.md-content__inner > :is(h2, h3).course-section--core {
   --course-banner-accent: var(--course-ink);
   --course-banner-bg: var(--course-surface-2);
 }
 
-.md-content__inner > h2.course-section--extension {
+.md-content__inner > :is(h2, h3).course-section--extension {
   --course-banner-accent: var(--course-faint);
   --course-banner-bg: transparent;
   box-shadow: inset 4px 0 0 var(--course-banner-accent);
 }
 
-.md-content__inner > h2.course-section--result {
+.md-content__inner > :is(h2, h3).course-section--result {
   --course-banner-accent: var(--course-success);
   --course-banner-bg: var(--course-success-soft);
 }
