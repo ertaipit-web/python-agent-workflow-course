@@ -13,7 +13,7 @@ RAG Lab — компактная лаборатория курса, где retri
 Индексация корпуса и запрос — два разных прохода:
 
 ```mermaid
-%%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 28, "rankSpacing": 22, "wrappingWidth": 460}, "themeVariables": {"fontSize": "14px"}}}%%
+%%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 28, "rankSpacing": 42, "wrappingWidth": 460}, "themeVariables": {"fontSize": "14px"}}}%%
 flowchart TD
   subgraph IDX["Индексация: один раз"]
     D["Documents"] --> C["Chunk / Index"] --> V[("Vector store")]

@@ -16,7 +16,7 @@
 
 ```mermaid
 %%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 28, "rankSpacing": 22, "wrappingWidth": 460}, "themeVariables": {"fontSize": "14px"}}}%%
-flowchart LR
+flowchart TD
   subgraph EXT["Внешняя система"]
     RD["GET /repos/…/issues"]
     WR["POST /repos/…/issues"]
@@ -24,6 +24,7 @@ flowchart LR
   C["IssueApiClient"] --> TL["list_issues"] --> A["Agent: planner"]
   C --> TW["create_issue"] --> A
   A --> G["policy → approval → execution → trace"]
+  G ~~~ EXT
 ```
 
 Первый путь — чтение. Второй важен больше: предложенное агентом действие с побочным эффектом не доходит до внешней системы, пока это не разрешил policy и не подтвердил человек.

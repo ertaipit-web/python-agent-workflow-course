@@ -143,13 +143,13 @@ flowchart TD
 
 ```mermaid
 %%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 28, "rankSpacing": 22, "wrappingWidth": 460}, "themeVariables": {"fontSize": "14px"}}}%%
-flowchart LR
+flowchart TD
   subgraph WF["Workflow: порядок задан кодом"]
-    direction LR
+    direction TD
     A1["issue"] --> A2["planner"] --> A3["analyst"] --> A4["implementer"] --> A5["tests"] --> A6["отчёт"]
   end
   subgraph AG["Agent: шаг выбирается в runtime"]
-    direction LR
+    direction TD
     B1["наблюдаю"] --> B2["решаю"] --> B3["действую"] --> B1
   end
 ```
@@ -160,9 +160,11 @@ flowchart LR
 %%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 28, "rankSpacing": 22, "wrappingWidth": 460}, "themeVariables": {"fontSize": "14px"}}}%%
 flowchart TD
   subgraph SA["Single-agent"]
+    direction TD
     S1["задача"] --> S2["один промпт + инструменты"]
   end
   subgraph MA["Multi-agent"]
+    direction TD
     O["оркестратор"] --> M1["planner"] --> M2["worker: только чтение"] --> M3["reviewer"]
   end
 ```
