@@ -5,12 +5,18 @@
     "labs/repo-triage/src",
     "labs/repo-triage/tests",
     "labs/repo-triage/sample-repo/src",
-    "labs/repo-triage/sample-repo/tests"
+    "labs/repo-triage/sample-repo/tests",
+    "labs/rag-lab/src",
+    "labs/rag-lab/tests",
+    "labs/integration-lab/src",
+    "labs/integration-lab/tests"
   ],
   "extraPaths": [
     "labs/starter-repo/src",
     "labs/repo-triage/src",
-    "labs/repo-triage/sample-repo/src"
+    "labs/repo-triage/sample-repo/src",
+    "labs/rag-lab/src",
+    "labs/integration-lab/src"
   ],
   "pythonVersion": "3.11"
 }

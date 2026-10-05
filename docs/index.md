@@ -21,7 +21,7 @@
 <div class="route-grid">
   <a class="route-card route-card--featured" href="course/"><span class="route-label">ОСНОВНОЙ МАРШРУТ · 8 НЕДЕЛЬ</span><h3>Мультиагентная разработка</h3><p>Baseline, распределение ролей, контракты, eval, tracing и безопасный capstone на Python.</p><span class="route-link">Открыть программу <b aria-hidden="true">↗</b></span></a>
   <a class="route-card" href="autonomous-agents/"><span class="route-label">ПО ВЫБОРУ</span><h3>Автономные агенты</h3><p>Выберите общий фундамент и 1–2 модуля под свой сценарий. Не нужно проходить весь каталог.</p><span class="route-link">Выбрать модули <b aria-hidden="true">↗</b></span></a>
-  <a class="route-card" href="lab-repository/"><span class="route-label">ПРАКТИКА</span><h3>Taskboard и Repo Triage</h3><p>Начните с небольшого примера или потренируйтесь разбирать issue в Python-репозитории.</p><span class="route-link">Открыть лабораторные <b aria-hidden="true">↗</b></span></a>
+  <a class="route-card" href="lab-repository/"><span class="route-label">ПРАКТИКА</span><h3>Четыре лабораторные</h3><p>Taskboard, Repo Triage, retrieval как инструмент агента и интеграция с внешней системой.</p><span class="route-link">Открыть лабораторные <b aria-hidden="true">↗</b></span></a>
 </div>
 
 ## Что вы соберёте

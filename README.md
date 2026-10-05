@@ -15,6 +15,8 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
 .\.venv\Scripts\python.exe -m pip install "zensical==0.0.67"
 .\.venv\Scripts\python.exe -m pip install -e ".\labs\starter-repo[dev]"
 .\.venv\Scripts\python.exe -m pip install -e ".\labs\repo-triage[dev]"
+.\.venv\Scripts\python.exe -m pip install -e ".\labs\rag-lab[dev]"
+.\.venv\Scripts\python.exe -m pip install -e ".\labs\integration-lab[dev]"
 .\.venv\Scripts\python.exe -m zensical serve
 ```
 
@@ -53,6 +55,10 @@ Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) прове
 - `docs/local-models.md` — подробная лабораторная по локальным моделям и интеграции.
 - `docs/sources.md` — источники и материалы, использованные при подготовке программы.
 - `docs/lab-repository.md` — как открыть учебные проекты и лабораторные.
+- `docs/rag-lab.md` — retrieval как инструмент агента: chunking, embeddings, vector search, отказ отвечать без источника и метрики качества.
+- `docs/integration-lab.md` — агент и внешняя система: REST-сервис issue, scopes, least privilege, human gate и trace.
 - `labs/starter-repo/` — автономный учебный Python-проект с issue и pytest-тестами.
 - `labs/repo-triage/` — локальная утилита для разбора issue и инвентаризации Python-репозитория.
+- `labs/rag-lab/` — retrieval tool, grounded-ответчик и набор проверочных вопросов с метриками.
+- `labs/integration-lab/` — локальный REST-сервис issue, типизированные инструменты агента и runtime с разрешениями.
 - `.github/workflows/pages.yml` — проверка, сборка и публикация GitHub Pages.

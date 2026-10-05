@@ -6,3 +6,5 @@ __pycache__/
 *.egg-info/
 Task01.md
 Task02.md
+Task03.md
+*.db

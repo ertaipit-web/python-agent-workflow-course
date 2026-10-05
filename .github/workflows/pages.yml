@@ -75,6 +75,18 @@ jobs:
         working-directory: ./labs/repo-triage/sample-repo
         run: python -m pytest
 
+      - name: Install RAG Lab test dependencies
+        run: python -m pip install -e "./labs/rag-lab[dev]"
+
+      - name: Test RAG Lab
+        run: python -m pytest "./labs/rag-lab/tests"
+
+      - name: Install Integration Lab test dependencies
+        run: python -m pip install -e "./labs/integration-lab[dev]"
+
+      - name: Test Integration Lab
+        run: python -m pytest "./labs/integration-lab/tests"
+
       - name: Build Zensical site
         run: python -m zensical build --strict
 

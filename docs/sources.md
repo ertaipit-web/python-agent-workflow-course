@@ -38,6 +38,22 @@
 - [Ollama integration for VS Code](https://docs.ollama.com/integrations/vscode) — подключение локальной модели к VS Code Chat.
 - Документация Kilo: [Ollama provider](https://kilo.ai/docs/ai-providers/ollama) и [custom models](https://kilo.ai/docs/code-with-ai/agents/custom-models) — отдельная настройка provider и пользовательских моделей в Kilo Code.
 
+## Retrieval и RAG
+
+Материалы для компактной RAG-лаборатории и для объяснения, почему retrieval измеряют, а не считают заданным:
+
+- [Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks](https://arxiv.org/abs/2005.11401) — исходная работа по RAG (Lewis et al., NeurIPS 2020): разделение параметрической памяти модели и непараметрической памяти индекса. Отсюда же идея передавать provenance вместе с найденным фрагментом.
+- [Effective context engineering for AI agents — Anthropic](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) — общий принцип отбора релевантного контекста, к которому подключается retrieval: в модель попадает только необходимое для текущего шага.
+
+## Интеграции, доступ и least privilege
+
+- [REST API endpoints for issues — GitHub](https://docs.github.com/en/rest/issues/issues) — формат реального issue API, на который ориентирована лабораторная интеграция.
+- [RFC 9110: HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html) — методы, идемпотентность, коды состояния и семантика ошибок, на которых построен клиент и retry для чтения.
+- [OWASP Cheat Sheet: Authorization](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html) — deny by default, least privilege и проверка прав на каждом запросе.
+- [OWASP Cheat Sheet: AI Agent Security](https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html) — безопасность инструментов агента, разделение read и high-impact действий, human-in-the-loop, валидация входа и выхода.
+
+Для business framing отдельного раздела источников не требуется: материал про то, когда агент не нужен и почему workflow лучше одиночного агента, уже есть в разделе Anthropic выше, в статье [Building effective agents](https://www.anthropic.com/research/building-effective-agents).
+
 ## Как читать рекомендации
 
 Описания продуктов, API, доступность курсов, требования редакторов и теги моделей со временем меняются. Проверяйте актуальную документацию перед установкой или настройкой. Рекомендации по запуску на компьютере с 14 ГБ RAM — осторожная отправная точка для экспериментов, а не гарантия скорости или качества: результат зависит от GPU/VRAM, CPU, контекста и параллельно запущенных приложений.

@@ -1,0 +1,44 @@
+[
+  {
+    "case_id": "handoff-fields",
+    "question": "What must every handoff artifact contain?",
+    "supported": true,
+    "expected_sources": ["handoff-contract.md"]
+  },
+  {
+    "case_id": "whole-corpus",
+    "question": "Why is injecting every document into every model call a problem?",
+    "supported": true,
+    "expected_sources": ["retrieval-tools.md"]
+  },
+  {
+    "case_id": "runtime-checks",
+    "question": "What does the runtime check before an external system is reached?",
+    "supported": true,
+    "expected_sources": ["permissions-policy.md"]
+  },
+  {
+    "case_id": "retry-side-effect",
+    "question": "When is a retry with an external side effect unsafe?",
+    "supported": true,
+    "expected_sources": ["trace-events.md"]
+  },
+  {
+    "case_id": "unknown-tool-name",
+    "question": "What happens when the tool name is unknown?",
+    "supported": true,
+    "expected_sources": ["permissions-policy.md"]
+  },
+  {
+    "case_id": "no-evidence-in-corpus",
+    "question": "Which database engine stores the retrieved chunks?",
+    "supported": false,
+    "expected_sources": []
+  },
+  {
+    "case_id": "outside-the-corpus",
+    "question": "How much does a kilogram of coffee beans cost in Lisbon?",
+    "supported": false,
+    "expected_sources": []
+  }
+]
