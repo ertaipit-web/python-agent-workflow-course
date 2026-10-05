@@ -2,12 +2,14 @@
 
 В репозитории курса есть четыре самостоятельных Python-проекта с собственными зависимостями и тестами. Они не являются частью Zensical-сайта:
 
-| Проект | Для чего | Материалы |
+| Проект | Когда открывать | Материалы |
 |---|---|---|
-| **Taskboard** (`labs/starter-repo/`) | Самый простой вводный проход: небольшая задача, baseline-тесты и контракт работы агента. | Пять issue и упражнения в `labs/starter-repo/issues/` и `labs/starter-repo/exercises/`; инструкция — в `labs/starter-repo/README.md`. |
-| **Repo Triage** (`labs/repo-triage/`) | Практика разбора issue и Python-кода: локальная CLI-утилита собирает инвентарь файлов и символов, ранжирует контекст по ключевым словам и отмечает неоднозначные запросы как требующие уточнения. | Четыре issue типов bug/test/docs/ambiguous, тестовый Python-репозиторий и инструкция в `labs/repo-triage/README.md`. |
-| **RAG Lab** (`labs/rag-lab/`) | Retrieval как инструмент агента: ingestion, chunking, embeddings, vector search, retrieval tool, ответ с цитатами и отказ отвечать без источника. | Корпус Markdown-документов, набор проверочных вопросов с метриками и инструкция в `labs/rag-lab/README.md`. |
-| **Integration Lab** (`labs/integration-lab/`) | Агент и реальная внешняя система: локальный REST-сервис issue поверх SQLite, типизированные инструменты, scopes, least privilege, human gate и trace. | Четыре сценария запуска и инструкция в `labs/integration-lab/README.md`. |
+| **Taskboard** (`labs/starter-repo/`) | Самый простой вводный проход: небольшая задача, baseline-тесты и контракт работы агента. | Пять issue и упражнения в `labs/starter-repo/issues/` и `labs/starter-repo/exercises/`; инструкции — в `labs/starter-repo/README.md`. |
+| **Repo Triage** (`labs/repo-triage/`) | Второй шаг: подготовка фактов о запросе и структуре существующего Python-репозитория. Локальная CLI-утилита собирает инвентарь файлов и символов, ранжирует контекст по ключевым словам и отмечает неоднозначные запросы как требующие уточнения. | Четыре issue типов bug/test/docs/ambiguous, тестовый Python-репозиторий и инструкции в `labs/repo-triage/README.md`. |
+| **RAG Lab** (`labs/rag-lab/`) | Тема retrieval из недели 3 в коде: ingestion, chunking, embeddings, vector search, retrieval tool, ответ с цитатами и отказ отвечать без источника. | Корпус Markdown-документов, набор проверочных вопросов с метриками и инструкции в `labs/rag-lab/README.md`. |
+| **Integration Lab** (`labs/integration-lab/`) | Тема tools и policy из недели 6 на реальной внешней системе: локальный REST-сервис issue поверх SQLite, типизированные инструменты, scopes, least privilege, human gate и trace. | Четыре сценария запуска и инструкции в `labs/integration-lab/README.md`. |
+
+Подробное описание каждой лаборатории есть на сайте: [Repo Triage](repo-triage.md), [RAG Lab](rag-lab.md), [Integration Lab](integration-lab.md).
 
 Repo Triage не вызывает LLM, не меняет код и не запускает команды в анализируемом репозитории. Ранжирование файлов — эвристика для подготовки контекста, а не замена анализа разработчиком или coding agent.
 

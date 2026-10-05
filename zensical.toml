@@ -10,11 +10,11 @@ nav = [
   "course.md",
   "autonomous-agents.md",
   "lab-repository.md",
+  "repo-triage.md",
   "rag-lab.md",
   "integration-lab.md",
   "local-models.md",
   "ollama-vscode.md",
-  "repo-triage.md",
   "sources.md",
 ]
 

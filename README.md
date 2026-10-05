@@ -34,7 +34,7 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
 
 ## GitHub Pages
 
-Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) проверяет оба учебных Python-проекта и собирает сайт на pull request в `main`; после каждого push/merge в `main` он также публикует сайт в GitHub Pages. Один только локальный commit workflow не запускает — нужен push. Базовый URL проекта определяется GitHub Pages автоматически.
+Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) проверяет учебные Python-проекты и собирает сайт на pull request в `main`; после каждого push/merge в `main` он также публикует сайт в GitHub Pages. Один только локальный commit workflow не запускает — нужен push. Базовый URL проекта определяется GitHub Pages автоматически.
 
 Чтобы включить публикацию в GitHub:
 
@@ -51,10 +51,11 @@ Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) прове
 - `docs/index.md` — главная страница и карта курса.
 - `docs/course.md` — основной 8-недельный практикум с обязательным ядром и необязательными расширениями.
 - `docs/autonomous-agents.md` — каталог из 6 модулей по автономным агентам; выбирайте 2–3 по своему use case.
-- `docs/ollama-vscode.md` — справочник подключения Ollama к VS Code Chat и Kilo.
-- `docs/local-models.md` — подробная лабораторная по локальным моделям и интеграции.
+- `docs/ollama-vscode.md` — команды подключения Ollama к VS Code Chat и Kilo, диагностика по симптомам.
+- `docs/local-models.md` — выбор локальной модели под объём RAM и фиксация результатов локального прогона.
 - `docs/sources.md` — источники и материалы, использованные при подготовке программы.
-- `docs/lab-repository.md` — как открыть учебные проекты и лабораторные.
+- `docs/lab-repository.md` — четыре учебных проекта: когда открывать каждый и как получить файлы.
+- `docs/repo-triage.md` — локальный разбор issue и инвентаризация Python-репозитория.
 - `docs/rag-lab.md` — retrieval как инструмент агента: chunking, embeddings, vector search, отказ отвечать без источника и метрики качества.
 - `docs/integration-lab.md` — агент и внешняя система: REST-сервис issue, scopes, least privilege, human gate и trace.
 - `labs/starter-repo/` — автономный учебный Python-проект с issue и pytest-тестами.
