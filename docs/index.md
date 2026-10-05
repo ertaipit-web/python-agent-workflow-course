@@ -2,7 +2,7 @@
 
 <section class="course-hero">
   <p class="course-eyebrow">ИНЖЕНЕРНЫЙ ПРАКТИКУМ · 8 НЕДЕЛЬ · PYTHON</p>
-  <p class="course-lead">Не просто разделяйте работу между агентами. Постройте workflow, который можно измерить, проверить и безопасно остановить.</p>
+  <p class="course-lead">Модель умеет подсказать текст и код, но сама по себе задачу не решает. Курс собирает вокруг неё систему, которую можно измерить, проверить и безопасно остановить.</p>
   <p class="course-actions"><a class="course-button course-button--primary" href="course/">Перейти к программе <span aria-hidden="true">→</span></a><a class="course-button course-button--secondary" href="lab-repository/">Выбрать лабораторную</a></p>
   <div class="course-stats"><div><strong>24–40 ч</strong><span>основное ядро</span></div><div><strong>Python + pytest</strong><span>бесплатная основа</span></div><div><strong>Без API</strong><span>mock provider для тестов</span></div></div>
   <div class="workflow-strip" aria-label="Этапы учебного workflow"><span>PLAN</span><i></i><span>ANALYZE</span><i></i><span>IMPLEMENT</span><i></i><span>VERIFY</span><i></i><span>HUMAN REVIEW</span></div>
@@ -12,14 +12,14 @@
 
 <div class="audience-grid">
   <div class="info-card"><span class="card-index">01 / УЖЕ УМЕЕТЕ</span><h3>Работать с Python-проектом</h3><p>Читать и менять код, пользоваться Git, запускать pytest или похожие проверки.</p></div>
-  <div class="info-card"><span class="card-index">02 / ХОТИТЕ НАУЧИТЬСЯ</span><h3>Строить команды AI-ролей</h3><p>Перейти от одиночных запросов к ограниченным ролям, handoff-контрактам и проверке результата.</p></div>
+  <div class="info-card"><span class="card-index">02 / ХОТИТЕ НАУЧИТЬСЯ</span><h3>Строить систему вокруг модели</h3><p>Перейти от одиночных запросов к шагам, у которых есть роль, проверяемый контракт и тест.</p></div>
   <div class="info-card info-card--quiet"><span class="card-index">НЕ НУЖНО ЗАРАНЕЕ</span><h3>Покупать подписки и осваивать фреймворки</h3><p>Ollama, LangGraph и MCP — расширения. Для упражнений подойдут локальные инструменты и mock provider.</p></div>
 </div>
 
 ## Маршрут: от первого эксперимента к своей системе
 
 <div class="route-grid">
-  <a class="route-card route-card--featured" href="course/"><span class="route-label">ОСНОВНОЙ МАРШРУТ · 8 НЕДЕЛЬ</span><h3>Мультиагентная разработка</h3><p>Baseline, распределение ролей, контракты, eval, tracing и безопасный capstone на Python.</p><span class="route-link">Открыть программу <b aria-hidden="true">↗</b></span></a>
+  <a class="route-card route-card--featured" href="course/"><span class="route-label">ОСНОВНОЙ МАРШРУТ · 8 НЕДЕЛЬ</span><h3>Мультиагентная разработка</h3><p>Простейшая рабочая версия, разделение ролей, контракты между ними, оценка качества, трассировка и безопасный capstone на Python.</p><span class="route-link">Открыть программу <b aria-hidden="true">↗</b></span></a>
   <a class="route-card" href="autonomous-agents/"><span class="route-label">ПО ВЫБОРУ</span><h3>Автономные агенты</h3><p>Выберите общий фундамент и 1–2 модуля под свой сценарий. Не нужно проходить весь каталог.</p><span class="route-link">Выбрать модули <b aria-hidden="true">↗</b></span></a>
   <a class="route-card" href="lab-repository/"><span class="route-label">ПРАКТИКА</span><h3>Четыре лабораторные</h3><p>Taskboard, Repo Triage, retrieval как инструмент агента и интеграция с внешней системой.</p><span class="route-link">Открыть лабораторные <b aria-hidden="true">↗</b></span></a>
 </div>
