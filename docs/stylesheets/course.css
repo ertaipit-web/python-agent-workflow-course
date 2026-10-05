@@ -1,32 +1,100 @@
+/* =========================================================================
+   Course design system
+   1. Tokens          5. Lists, links, helpers
+   2. Palette         6. Code
+   3. Reading column  7. Tables
+   4. Headings        8. Callouts, week brief, sections
+   9. Diagrams       10. Landing components
+                     11. Accessibility / responsive
+   ========================================================================= */
+
+/* 1. Tokens ---------------------------------------------------------------- */
 :root {
+  /* text */
   --course-ink: #12252b;
-  --course-muted: #52666d;
-  --course-line: #dce7e4;
-  --course-teal: #087f78;
+  --course-heading: #0b1c21;
+  --course-muted: #4a5f66;
+  --course-faint: #6b7f86;
+  /* borders */
+  --course-line: #d8e4e1;
+  --course-line-strong: #b6ccc7;
+  /* surfaces */
+  --course-surface-2: #f7faf9;
+  --course-panel: #eef5f3;
+  /* code */
+  --course-code-bg: #f4f8f7;
+  --course-code-line: #e0eae8;
+  /* accent */
+  --course-teal: #0a7b74;
+  --course-teal-strong: #055b56;
+  --course-teal-soft: #e0f2ee;
   --course-teal-bright: #65e0c2;
-  --course-coral: #ffb17d;
-  --course-panel: #f3f8f6;
+  /* status */
+  --course-success: #1a7044;
+  --course-success-soft: #e4f3ea;
+  --course-warning: #855607;
+  --course-warning-soft: #fbf1dd;
+  --course-danger: #a0272d;
+  --course-danger-soft: #fbeaea;
+  --course-info: #27567f;
+  --course-info-soft: #e8f0f8;
+  /* diagrams */
+  --course-node-bg: #f7faf9;
+  --course-node-fg: #12252b;
+  --course-edge: #6f8d8a;
+  --course-cluster-bg: #eef5f3;
+  --course-cluster-line: #c6d9d5;
+  /* metrics */
+  --course-radius: 0.65rem;
+  --course-radius-sm: 0.4rem;
+  --course-measure: 45rem;
+  --course-focus: #0a7b74;
+  --course-label: 0.72rem;
+  --course-label-track: 0.08em;
 }
 
+/* 2. Palette --------------------------------------------------------------- */
 [data-md-color-scheme="default"] {
   --md-primary-fg-color: #12343a;
   --md-primary-fg-color--light: #1b5557;
   --md-primary-fg-color--dark: #0c272c;
-  --md-accent-fg-color: #087f78;
-  --md-typeset-a-color: #087f78;
+  --md-accent-fg-color: #0a7b74;
+  --md-typeset-a-color: #0a7b74;
 }
 
 [data-md-color-scheme="slate"] {
   --course-ink: #e2eeeb;
-  --course-muted: #b5c8c3;
-  --course-line: #344b4c;
-  --course-teal: #75ddca;
-  --course-panel: #1c3034;
+  --course-heading: #f1faf7;
+  --course-muted: #b3c7c2;
+  --course-faint: #93a8a3;
+  --course-line: #2b4245;
+  --course-line-strong: #436065;
+  --course-surface-2: #172c31;
+  --course-panel: #1a3034;
+  --course-code-bg: #12262a;
+  --course-code-line: #28403f;
+  --course-teal: #7ee6d2;
+  --course-teal-strong: #a3f0e1;
+  --course-teal-soft: #143330;
+  --course-success: #74d9a1;
+  --course-success-soft: #123026;
+  --course-warning: #f0bb6b;
+  --course-warning-soft: #33270f;
+  --course-danger: #ff9a9a;
+  --course-danger-soft: #3a1c1e;
+  --course-info: #9ac5ee;
+  --course-info-soft: #16273a;
+  --course-node-bg: #1b3035;
+  --course-node-fg: #e2eeeb;
+  --course-edge: #9cb6b2;
+  --course-cluster-bg: #1d3438;
+  --course-cluster-line: #3c5a5e;
+  --course-focus: #7ee6d2;
   --md-primary-fg-color: #12343a;
   --md-primary-fg-color--light: #1b5557;
   --md-primary-fg-color--dark: #0c272c;
-  --md-accent-fg-color: #75ddca;
-  --md-typeset-a-color: #75ddca;
+  --md-accent-fg-color: #7ee6d2;
+  --md-typeset-a-color: #7ee6d2;
 }
 
 .md-header {
@@ -38,10 +106,363 @@
   letter-spacing: -0.025em;
 }
 
+/* 3. Reading column --------------------------------------------------------- */
 .md-content__inner {
-  padding-bottom: 3rem;
+  padding-bottom: 3.5rem;
 }
 
+/* Учебные страницы: ограниченная колонка чтения. Landing-страница
+   (с .course-title) сохраняет собственную ширину. */
+.md-content__inner:not(:has(> .course-title)) > * {
+  max-width: var(--course-measure);
+  margin-inline: auto;
+}
+
+/* 4. Headings --------------------------------------------------------------- */
+.md-content__inner > :is(h1, h2, h3, h4, h5, h6):not([class]),
+.md-content__inner > h2.course-section {
+  color: var(--course-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.md-content__inner > h1:not([class]) {
+  --course-h1: clamp(1.7rem, 1.35rem + 1.5vw, 2.15rem);
+
+  margin: 2.4rem 0 1.1rem;
+  font-size: var(--course-h1);
+  letter-spacing: -0.03em;
+  line-height: 1.18;
+}
+
+.md-content__inner > h1:first-child:not([class]) {
+  margin-top: 0;
+}
+
+.md-content__inner > h2:not([class]),
+.md-content__inner > h2.course-section {
+  --course-h2: clamp(1.28rem, 1.15rem + 0.6vw, 1.5rem);
+
+  font-size: var(--course-h2);
+}
+
+.md-content__inner > h2:not([class]) {
+  margin: 2.5rem 0 0.85rem;
+}
+
+.md-content__inner > h3:not([class]) {
+  margin: 1.7rem 0 0.55rem;
+  font-size: 1.1rem;
+}
+
+.md-content__inner > h4:not([class]) {
+  margin: 1.3rem 0 0.45rem;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.md-content__inner > h5:not([class]) {
+  margin: 1.1rem 0 0.35rem;
+  color: var(--course-muted);
+  font-size: 0.88rem;
+  letter-spacing: 0.01em;
+}
+
+.md-content__inner > h6:not([class]) {
+  margin: 1rem 0 0.3rem;
+  color: var(--course-faint);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* 5. Lists, links, helpers --------------------------------------------------- */
+.md-content__inner > p:not([class]) {
+  margin: 0 0 1rem;
+  color: var(--course-ink);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.md-content__inner > ul:not([class]),
+.md-content__inner > ol:not([class]) {
+  margin: 0 0 1.1rem;
+  padding-left: 1.35rem;
+}
+
+.md-content__inner > :is(ul, ol):not([class]) > li {
+  margin-bottom: 0.35rem;
+  color: var(--course-ink);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.md-content__inner > hr {
+  height: 0;
+  margin: 2.6rem 0;
+  border: 0;
+  border-top: 1px solid var(--course-line);
+}
+
+.md-typeset a {
+  text-underline-offset: 0.15em;
+}
+
+.md-typeset a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* 6. Code ------------------------------------------------------------------- */
+.md-typeset pre {
+  margin: 1.3rem 0;
+  padding: 0.95rem 1.05rem;
+  overflow-x: auto;
+  border: 1px solid var(--course-code-line);
+  border-radius: var(--course-radius);
+  background: var(--course-code-bg);
+  font-size: 0.82rem;
+  line-height: 1.62;
+  tab-size: 2;
+}
+
+.md-typeset pre > code {
+  font-size: inherit;
+}
+
+.md-typeset :not(pre) > code {
+  padding: 0.12em 0.36em;
+  border-radius: var(--course-radius-sm);
+  background: var(--course-code-bg);
+  color: var(--course-heading);
+  font-size: 0.85em;
+}
+
+/* 7. Tables ----------------------------------------------------------------- */
+/* Zensical оборачивает table в .md-typeset__scrollwrap с overflow: auto,
+   поэтому горизонтальный скролл появляется на обёртке, а min-width
+   не даёт широким таблицам сжиматься в нечитаемые столбцы. */
+.md-content__inner > .md-typeset__scrollwrap {
+  margin: 1.4rem 0;
+}
+
+.md-content__inner table,
+.md-content__inner .md-typeset__table table {
+  width: 100%;
+  min-width: 28rem;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.md-typeset :is(th, td) {
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--course-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.md-typeset thead th {
+  border-bottom: 1px solid var(--course-line-strong);
+  background: var(--course-panel);
+  color: var(--course-heading);
+  font-size: var(--course-label);
+  font-weight: 750;
+  letter-spacing: var(--course-label-track);
+  text-transform: uppercase;
+}
+
+.md-typeset tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.md-typeset tbody tr:hover {
+  background: var(--course-surface-2);
+}
+
+/* 8. Callouts, week brief, sections ------------------------------------------ */
+/* Admonition из Zensical: тип задаёт цвет и смысл, подпись — второй сигнал. */
+.md-typeset .admonition,
+.md-typeset details.admonition {
+  --course-callout-accent: var(--course-teal);
+  --course-callout-bg: var(--course-teal-soft);
+
+  margin: 1.5rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--course-line);
+  border-left: 3px solid var(--course-callout-accent);
+  border-radius: var(--course-radius-sm);
+  background: var(--course-callout-bg);
+  color: var(--course-ink);
+  font-size: 0.94rem;
+  line-height: 1.62;
+}
+
+.md-typeset .admonition > :first-child,
+.md-typeset details.admonition > :first-child {
+  margin-top: 0;
+}
+
+.md-typeset .admonition > :last-child,
+.md-typeset details.admonition > :last-child {
+  margin-bottom: 0;
+}
+
+.md-typeset .admonition-title {
+  margin: 0 0 0.4rem;
+  color: var(--course-callout-accent);
+  font-size: var(--course-label);
+  font-weight: 750;
+  letter-spacing: var(--course-label-track);
+  text-transform: uppercase;
+}
+
+.md-typeset .admonition.rule {
+  --course-callout-accent: var(--course-teal-strong);
+  --course-callout-bg: var(--course-surface-2);
+}
+
+.md-typeset .admonition.key-idea {
+  --course-callout-accent: var(--course-teal);
+  --course-callout-bg: var(--course-teal-soft);
+}
+
+.md-typeset .admonition.why {
+  --course-callout-accent: var(--course-info);
+  --course-callout-bg: var(--course-info-soft);
+}
+
+.md-typeset .admonition.pitfall {
+  --course-callout-accent: var(--course-danger);
+  --course-callout-bg: var(--course-danger-soft);
+}
+
+.md-typeset .admonition.caution {
+  --course-callout-accent: var(--course-warning);
+  --course-callout-bg: var(--course-warning-soft);
+}
+
+.md-typeset .admonition.takeaway {
+  --course-callout-accent: var(--course-success);
+  --course-callout-bg: var(--course-success-soft);
+}
+
+/* Начало недели: четыре подписи в одном блоке. */
+.md-typeset .week-brief {
+  margin: 1.4rem 0 2.2rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--course-line);
+  border-left: 3px solid var(--course-teal);
+  border-radius: var(--course-radius);
+  background: var(--course-panel);
+}
+
+.week-brief dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.4rem 1.1rem;
+  margin: 0;
+}
+
+.week-brief dt {
+  padding-top: 0.22rem;
+  color: var(--course-teal);
+  font-size: var(--course-label);
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.week-brief dd {
+  margin: 0;
+  color: var(--course-ink);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+/* Секционные баннеры: Практика / Результат / Ядро / Расширение.
+   Каждый тип отличается цветом И формой левой границы. */
+.md-content__inner > h2.course-section {
+  --course-banner-accent: var(--course-teal);
+  --course-banner-bg: var(--course-panel);
+
+  margin: 2.6rem 0 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  border-radius: var(--course-radius-sm);
+  background: var(--course-banner-bg);
+  box-shadow: inset 4px 0 0 var(--course-banner-accent);
+}
+
+.md-content__inner > h2.course-section--core {
+  --course-banner-accent: var(--course-ink);
+  --course-banner-bg: var(--course-surface-2);
+}
+
+.md-content__inner > h2.course-section--extension {
+  --course-banner-accent: var(--course-faint);
+  --course-banner-bg: transparent;
+  box-shadow: inset 4px 0 0 var(--course-banner-accent);
+}
+
+.md-content__inner > h2.course-section--result {
+  --course-banner-accent: var(--course-success);
+  --course-banner-bg: var(--course-success-soft);
+}
+
+/* Абзацные пометки «Обязательное ядро» / «Расширение». */
+.md-content__inner > p.course-note {
+  margin: 1.1rem 0;
+  padding: 0.55rem 0.9rem;
+  border-left: 3px solid var(--course-note-accent, var(--course-teal));
+  border-radius: 0 var(--course-radius-sm) var(--course-radius-sm) 0;
+  background: var(--course-note-bg, var(--course-surface-2));
+  font-size: 0.94rem;
+  line-height: 1.6;
+}
+
+.md-content__inner > p.course-note--extension {
+  --course-note-accent: var(--course-faint);
+  --course-note-bg: transparent;
+
+  border-left-style: dashed;
+  color: var(--course-muted);
+}
+
+/* 9. Diagrams --------------------------------------------------------------- */
+/* Mermaid рисуется в закрытом shadow DOM, поэтому вся тема задаётся
+   кастомными свойствами, которые наследуются внутрь. */
+.md-typeset .mermaid {
+  --md-mermaid-node-bg-color: var(--course-node-bg);
+  --md-mermaid-node-fg-color: var(--course-node-fg);
+  --md-mermaid-edge-color: var(--course-edge);
+  --md-mermaid-label-bg-color: var(--course-cluster-bg);
+  --md-mermaid-label-fg-color: var(--course-ink);
+  --md-mermaid-font-family: var(--md-text-font-family, ui-sans-serif, system-ui, sans-serif);
+  --md-default-fg-color--lightest: var(--course-cluster-bg);
+  --md-default-fg-color--lighter: var(--course-cluster-line);
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: safe center;
+  margin: 1.5rem 0;
+  padding: 1rem 0.6rem;
+  overflow-x: auto;
+  border: 1px solid var(--course-line);
+  border-radius: var(--course-radius);
+  background: var(--course-surface-2);
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+/* До отрисовки диаграмма остаётся исходным текстом схемы. */
+.md-typeset pre.mermaid {
+  background: var(--course-code-bg);
+  text-align: left;
+}
+
+/* 10. Landing components ----------------------------------------------------- */
 .md-content__inner > .course-title {
   margin: 1.3rem 0 0;
   padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1.25rem, 5vw, 4rem) 0.25rem;
@@ -207,41 +628,7 @@
 }
 
 .workflow-strip span:last-child {
-  color: var(--course-coral);
-}
-
-.md-content__inner > h2 {
-  margin-top: 2.8rem;
-  color: var(--course-ink);
-  font-size: clamp(1.45rem, 3vw, 2rem);
-  font-weight: 730;
-  letter-spacing: -0.045em;
-}
-
-/* Callouts: короткие выноски «Rule», «Key idea», «Why it matters»,
-   «Что уже умеем» и входные блоки недель. */
-.md-typeset .md-content__inner blockquote {
-  margin: 1.1rem 0;
-  padding: 0.7rem 0.9rem;
-  border-left: 3px solid var(--course-teal);
-  border-radius: 0 0.5rem 0.5rem 0;
-  background: var(--course-panel);
-  color: var(--course-ink);
-  font-size: 0.86rem;
-  line-height: 1.6;
-}
-
-.md-typeset .md-content__inner blockquote > :first-child {
-  margin-top: 0;
-}
-
-.md-typeset .md-content__inner blockquote > :last-child {
-  margin-bottom: 0;
-}
-
-.md-typeset .md-content__inner blockquote strong:first-child {
-  color: var(--course-teal);
-  font-weight: 730;
+  color: #ffb17d;
 }
 
 .audience-grid,
@@ -309,7 +696,7 @@
 
 .route-card:hover {
   transform: translateY(-3px);
-  border-color: #91c8bd;
+  border-color: var(--course-line-strong);
   box-shadow: 0 12px 30px rgb(18 52 58 / 9%);
 }
 
@@ -425,16 +812,12 @@
     linear-gradient(120deg, #0b1c21 0%, #102e33 58%, #12443e 100%);
 }
 
-[data-md-color-scheme="slate"] .route-card:hover {
-  border-color: #75a99e;
-}
-
 [data-md-color-scheme="slate"] .resource-links a:hover {
-  border-color: #75a99e;
+  border-color: var(--course-line-strong);
 }
 
 .resource-links a:hover {
-  border-color: #91c8bd;
+  border-color: var(--course-line-strong);
   background: var(--course-panel);
 }
 
@@ -445,6 +828,13 @@
   color: var(--course-muted);
   font-size: 0.73rem;
   line-height: 1.7;
+}
+
+/* 11. Accessibility and responsive ------------------------------------------ */
+.md-typeset :is(a, button, summary, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--course-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 @media screen and (max-width: 760px) {
@@ -498,6 +888,27 @@
   .outcome-panel {
     grid-template-columns: 1fr;
     gap: 1.25rem;
+  }
+
+  .week-brief {
+    padding: 0.85rem 0.95rem;
+  }
+
+  .week-brief dl {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .week-brief dt {
+    padding-top: 0.55rem;
+  }
+
+  .week-brief dd {
+    font-size: 0.92rem;
+  }
+
+  .md-typeset .mermaid {
+    padding: 0.75rem 0.4rem;
   }
 }
 

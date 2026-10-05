@@ -14,12 +14,16 @@
 
 ## Два пути
 
-```text
-External system            API / client            Agent tool            Agent
-GET  /repos/…/issues   →   IssueApiClient    →   list_issues      →   planner
-POST /repos/…/issues   →   IssueApiClient    →   create_issue    →   planner
-                                                                       ↓
-                                                        policy → approval → execution → trace
+```mermaid
+%%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 28, "rankSpacing": 22, "wrappingWidth": 460}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart LR
+  subgraph EXT["Внешняя система"]
+    RD["GET /repos/…/issues"]
+    WR["POST /repos/…/issues"]
+  end
+  C["IssueApiClient"] --> TL["list_issues"] --> A["Agent: planner"]
+  C --> TW["create_issue"] --> A
+  A --> G["policy → approval → execution → trace"]
 ```
 
 Первый путь — чтение. Второй важен больше: предложенное агентом действие с побочным эффектом не доходит до внешней системы, пока это не разрешил policy и не подтвердил человек.
@@ -46,13 +50,16 @@ API реализует `DELETE /repos/{owner}/{repository}`. Агент не м�
 
 Проверки выполняются в строгом порядке, и каждая оставляет след в trace:
 
-```text
-tool name      → зарегистрирован?
-arguments      → соответствуют схеме?
-repository     → входит в allowlist?
-scopes         → выданы роли?
-side effect    → одобрен человеком?
-execute        → только теперь
+```mermaid
+%%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 28, "rankSpacing": 22, "wrappingWidth": 460}, "themeVariables": {"fontSize": "14px"}}}%%
+flowchart TD
+  T["tool name"] --> Q1{"зарегистрирован?"} --> A["arguments: по схеме?"] --> R["repository: в allowlist?"] --> S{"scopes: выданы роли?"} --> SE{"side effect: одобрен?"}
+  Q1 -- нет --> X{{"blocked: tool_not_registered"}}
+  A -- нет --> X
+  R -- нет --> X
+  S -- нет --> X
+  SE -- нет --> Y{{"needs_approval"}}
+  SE -- да --> EX["execute"]
 ```
 
 Отказ никогда не превращается в успешный результат: отчёт получает `blocked` или `needs_approval` и причину, по которой сработала проверка. Одобрение человека выдаётся отдельным флагом `--approve-writes`: без него сценарий с записью останавливается ровно там же, где и без одобрения.
@@ -69,7 +76,9 @@ execute        → только теперь
 | таймаут на чтении | `TransportTimeoutError`, run останавливается |
 | таймаут на записи | `WriteOutcomeUnknownError`: запрос отправлен, эффект мог примениться, повтор не выполняется автоматически |
 
-Последний случай — самая частая ошибка интеграций. Тест в лаборатории показывает, что эффект действительно приходит после таймаута, а наивный повтор создаёт дубликат. Отсюда правило недели 12 [продвинутого трека](autonomous-agents.md): перед повтором действия с эффектом сверяйте его результат, а если API это поддерживает, используйте idempotency key.
+!!! caution "Таймаут на записи"
+
+    Последний случай — самая частая ошибка интеграций. Тест в лаборатории показывает, что эффект действительно приходит после таймаута, а наивный повтор создаёт дубликат. Отсюда правило недели 12 [продвинутого трека](autonomous-agents.md): перед повтором действия с эффектом сверяйте его результат, а если API это поддерживает, используйте idempotency key.
 
 ## Границы
 
