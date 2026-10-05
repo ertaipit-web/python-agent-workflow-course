@@ -145,8 +145,4 @@ print(response.choices[0].message.content)
 
 ## Источники
 
-- [Ollama VS Code integration](https://docs.ollama.com/integrations/vscode)
-- [Ollama FAQ](https://docs.ollama.com/faq)
-- [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility)
-- [Kilo: Using Ollama](https://kilo.ai/docs/ai-providers/ollama)
-- [Kilo: Custom Models](https://kilo.ai/docs/code-with-ai/agents/custom-models)
+Полный список ссылок на документацию Ollama и Kilo — в разделе [Источники и материалы](sources.md).

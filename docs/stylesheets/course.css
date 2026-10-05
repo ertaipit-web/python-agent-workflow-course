@@ -218,6 +218,32 @@
   letter-spacing: -0.045em;
 }
 
+/* Callouts: короткие выноски «Rule», «Key idea», «Why it matters»,
+   «Что уже умеем» и входные блоки недель. */
+.md-typeset .md-content__inner blockquote {
+  margin: 1.1rem 0;
+  padding: 0.7rem 0.9rem;
+  border-left: 3px solid var(--course-teal);
+  border-radius: 0 0.5rem 0.5rem 0;
+  background: var(--course-panel);
+  color: var(--course-ink);
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.md-typeset .md-content__inner blockquote > :first-child {
+  margin-top: 0;
+}
+
+.md-typeset .md-content__inner blockquote > :last-child {
+  margin-bottom: 0;
+}
+
+.md-typeset .md-content__inner blockquote strong:first-child {
+  color: var(--course-teal);
+  font-weight: 730;
+}
+
 .audience-grid,
 .route-grid,
 .principle-grid {

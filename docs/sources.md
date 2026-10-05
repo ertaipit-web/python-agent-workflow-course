@@ -52,7 +52,7 @@
 - [OWASP Cheat Sheet: Authorization](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html) — deny by default, least privilege и проверка прав на каждом запросе.
 - [OWASP Cheat Sheet: AI Agent Security](https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html) — безопасность инструментов агента, разделение read и high-impact действий, human-in-the-loop, валидация входа и выхода.
 
-Для business framing отдельного раздела источников не требуется: материал про то, когда агент не нужен и почему workflow лучше одиночного агента, уже есть в разделе Anthropic выше, в статье [Building effective agents](https://www.anthropic.com/research/building-effective-agents).
+Материалы статей Anthropic ниже покрывают и business framing: когда агент не нужен и почему workflow лучше одиночного агента, — см. [Building effective agents](https://www.anthropic.com/research/building-effective-agents).
 
 ## Как читать рекомендации
 
