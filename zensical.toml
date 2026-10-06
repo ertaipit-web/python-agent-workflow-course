@@ -18,6 +18,11 @@ nav = [
   "sources.md",
 ]
 
+[project.markdown_extensions]
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid" },
+]
+
 [project.theme]
 [[project.theme.palette]]
 scheme = "default"
