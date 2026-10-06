@@ -7,7 +7,7 @@ use_directory_urls = true
 extra_css = ["stylesheets/course.css"]
 nav = [
   "index.md",
-  "course.md",
+  "course/index.md",
   "autonomous-agents.md",
   "lab-repository.md",
   "repo-triage.md",
