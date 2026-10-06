@@ -227,6 +227,7 @@ async def create_task_endpoint(task_create: TaskCreate, background_tasks: Backgr
         await create_task(
             session,
             payload={"task": task_create.task, "metadata": task_create.metadata},
+            task_id=task_id,
         )
         await session.commit()
 

@@ -136,8 +136,12 @@ async def init_db(database_url: str, poolclass=None) -> tuple[AsyncEngine, async
     return engine, async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def create_task(session: AsyncSession, payload: dict[str, Any]) -> Task:
-    task = Task(payload=payload)
+async def create_task(
+    session: AsyncSession,
+    payload: dict[str, Any],
+    task_id: UUID | None = None,
+) -> Task:
+    task = Task(id=task_id, payload=payload)
     session.add(task)
     await session.flush()
     return task

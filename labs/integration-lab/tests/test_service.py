@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +12,6 @@ from integration_lab.database import create_task, get_task, init_db
 from integration_lab.service import app
 
 
-# Test settings with SQLite in-memory
 class IntegrationTestSettings(Settings):
     database_url: str = "sqlite+aiosqlite:///:memory:"
     github_token: str = "test-token"
@@ -27,19 +28,28 @@ def test_settings():
 
 
 @pytest.fixture(scope="session")
-async def db_session(test_settings):
-    _, async_session_maker = await init_db(str(test_settings.database_url), poolclass=StaticPool)
+async def db_engine(test_settings):
+    engine, async_session_maker = await init_db(
+        str(test_settings.database_url), poolclass=StaticPool
+    )
+    yield engine, async_session_maker
+    await engine.dispose()
+
+
+@pytest.fixture(scope="session")
+async def db_session(db_engine):
+    _, async_session_maker = db_engine
     async with async_session_maker() as session:
         yield session
 
 
 @pytest.fixture
-async def client(test_settings, monkeypatch):
-    # Override settings for testing
+async def client(test_settings, monkeypatch, db_engine):
     from integration_lab import service
+
     monkeypatch.setattr(service, "settings", test_settings)
-    # Reset the session maker
-    monkeypatch.setattr(service, "async_session_maker", None)
+    monkeypatch.setattr(service, "engine", db_engine[0])
+    monkeypatch.setattr(service, "async_session_maker", db_engine[1])
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -64,25 +74,20 @@ async def test_create_task_endpoint(client):
     assert "task_id" in data
     assert data["status"] == "queued"
 
-    # Verify task_id is valid UUID
-    import uuid
     uuid.UUID(data["task_id"])
 
 
 @pytest.mark.asyncio
 async def test_create_task_validation(client):
-    # Empty task should fail
     response = await client.post("/tasks", json={"task": ""})
     assert response.status_code == 422
 
-    # Missing task field
     response = await client.post("/tasks", json={})
     assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_get_task_not_found(client):
-    import uuid
     fake_id = str(uuid.uuid4())
     response = await client.get(f"/tasks/{fake_id}")
     assert response.status_code == 404
@@ -113,13 +118,11 @@ async def test_task_status_updates(db_session: AsyncSession):
     task = await create_task(db_session, {"task": "Test"})
     await db_session.commit()
 
-    # Update to running
     updated = await update_task_status(db_session, task.id, "running")
     await db_session.commit()
     assert updated.status == "running"
     assert updated.started_at is not None
 
-    # Update to completed with result
     updated = await update_task_status(
         db_session, task.id, "completed",
         result={"status": "ok", "data": "result"}
@@ -129,7 +132,6 @@ async def test_task_status_updates(db_session: AsyncSession):
     assert updated.completed_at is not None
     assert updated.result == {"status": "ok", "data": "result"}
 
-    # Update to failed with error
     task2 = await create_task(db_session, {"task": "Test 2"})
     await db_session.commit()
     updated = await update_task_status(db_session, task2.id, "failed", error="Something went wrong")
@@ -152,7 +154,6 @@ async def test_database_models_have_correct_schema(db_session: AsyncSession):
     assert execution.status == "running"
     assert execution.trace == []
 
-    # Update execution
     updated = await update_execution(
         db_session, execution.id,
         status="completed",
@@ -162,3 +163,96 @@ async def test_database_models_have_correct_schema(db_session: AsyncSession):
     assert updated.status == "completed"
     assert updated.trace == [{"tool": "test", "status": "ok"}]
     assert updated.completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_create_task_with_explicit_id(db_session: AsyncSession):
+    """create_task должна принимать task_id от caller и использовать его как PK."""
+    task_id = uuid.uuid4()
+    task = await create_task(db_session, {"task": "Explicit ID test"}, task_id=task_id)
+    await db_session.commit()
+
+    assert task.id == task_id
+    retrieved = await get_task(db_session, task_id)
+    assert retrieved is not None
+    assert retrieved.id == task_id
+
+
+@pytest.mark.asyncio
+async def test_post_task_returns_authoritative_id(client):
+    """POST /tasks должен вернуть task_id, который существует в БД."""
+    response = await client.post("/tasks", json={"task": "Integration test task"})
+    assert response.status_code == 202
+    data = response.json()
+    returned_task_id = data["task_id"]
+
+    task_uuid = uuid.UUID(returned_task_id)
+
+    from integration_lab.service import get_async_session_maker
+    session_maker = await get_async_session_maker()
+    async with session_maker() as session:
+        from integration_lab.database import get_task
+        task = await get_task(session, task_uuid)
+        assert task is not None
+        assert str(task.id) == returned_task_id
+
+
+@pytest.mark.asyncio
+async def test_post_then_get_task_consistency(client):
+    """POST /tasks → GET /tasks/{task_id} должен возвращать ту же задачу."""
+    create_response = await client.post("/tasks", json={"task": "Lifecycle consistency test"})
+    assert create_response.status_code == 202
+    task_id = create_response.json()["task_id"]
+
+    get_response = await client.get(f"/tasks/{task_id}")
+    assert get_response.status_code == 200
+    data = get_response.json()
+    assert data["task_id"] == task_id
+
+
+@pytest.mark.asyncio
+async def test_execution_task_id_matches_task(client):
+    """Execution.task_id должен совпадать с task_id."""
+    create_response = await client.post("/tasks", json={"task": "Execution FK test"})
+    assert create_response.status_code == 202
+    task_id = create_response.json()["task_id"]
+    task_uuid = uuid.UUID(task_id)
+
+    from sqlalchemy import select
+
+    from integration_lab.database import Execution
+    from integration_lab.service import get_async_session_maker
+
+    session_maker = await get_async_session_maker()
+    async with session_maker() as session:
+        result = await session.execute(
+            select(Execution).where(Execution.task_id == task_uuid)
+        )
+        execution = result.scalars().first()
+        assert execution is not None
+        assert str(execution.task_id) == task_id
+
+
+@pytest.mark.asyncio
+async def test_task_lifecycle(client):
+    """Task lifecycle: queued → running → completed/done."""
+    create_response = await client.post("/tasks", json={"task": "Lifecycle test"})
+    assert create_response.status_code == 202
+    task_id = create_response.json()["task_id"]
+
+    from sqlalchemy import select
+
+    from integration_lab.database import Task
+    from integration_lab.service import get_async_session_maker
+
+    session_maker = await get_async_session_maker()
+    async with session_maker() as session:
+        # Initial state after POST: task exists with queued status
+        result = await session.execute(select(Task).where(Task.id == uuid.UUID(task_id)))
+        task = result.scalars().first()
+        assert task is not None
+        assert str(task.id) == task_id
+
+        # Background task may have already run (ScriptedPlanner with empty calls completes immediately)
+        # The key invariant: task_id is consistent across the lifecycle
+        assert task.status in ("queued", "running", "completed", "done", "failed")
