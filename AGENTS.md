@@ -329,6 +329,22 @@ labs/rag-lab/
 labs/integration-lab/
 ```
 
+**ВАЖНО: Все Python-эксперименты, установка зависимостей и запуск тестов проводятся ТОЛЬКО в `.venv` виртуальном окружении.**
+
+Никогда не ставьте пакеты в системный Python Windows или глобальное окружение пользователя. Используйте:
+```bash
+# Активация (PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# Или используйте python/pip напрямую из .venv
+C:\Git\ClaudeWorkshopReverse\.venv\Scripts\python.exe -m pytest ...
+C:\Git\ClaudeWorkshopReverse\.venv\Scripts\pip.exe install ...
+```
+
+Если `.venv` нет — создайте: `python -m venv .venv`.
+
+---
+
 Если меняется код лаборатории:
 
 * сохраняй Python-first подход;

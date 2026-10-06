@@ -7,12 +7,30 @@ name = "agent-course-integration-lab"
 version = "0.1.0"
 description = "An external issue API, agent tools and a permission policy for the AI agent engineering course"
 requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.1",
+    "python-dotenv>=1.0",
+    "httpx>=0.27",
+    "structlog>=24.1",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "pyright>=1.1",
+    "ruff>=0.4",
+]
 
 [project.scripts]
 integration-lab = "integration_lab.cli:main"
+agent-service = "integration_lab.service:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -20,3 +38,12 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pyright]
+typeCheckingMode = "basic"
+pythonVersion = "3.11"

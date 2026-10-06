@@ -1,0 +1,64 @@
+# Docker Compose for Agent Course Capstone Production Environment
+# Run with: docker compose up
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: agent-capstone-api
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVICE_NAME=agent-course-capstone
+      - SERVICE_HOST=0.0.0.0
+      - SERVICE_PORT=8000
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/agent_course
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_BASE_URL=https://api.github.com
+      - MODEL_PROVIDER=ollama
+      - MODEL_NAME=qwen3:8b
+      - MODEL_BASE_URL=http://host.docker.internal:11434/v1
+      - MODEL_API_KEY=
+      - MAX_CONCURRENT_TASKS=3
+      - TASK_TIMEOUT_SECONDS=300
+      - DEFAULT_MAX_RETRIES=2
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: agent-capstone-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=agent_course
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  default:
+    name: agent-capstone-network
