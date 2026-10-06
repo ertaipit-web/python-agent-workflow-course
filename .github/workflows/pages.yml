@@ -87,9 +87,6 @@ jobs:
       - name: Install Integration Lab test dependencies
         run: python -m pip install -e "./labs/integration-lab[dev]"
 
-      - name: Install aiosqlite for test databases
-        run: python -m pip install "aiosqlite>=0.20"
-
       - name: Test Integration Lab
         run: python -m pytest "./labs/integration-lab/tests"
 
