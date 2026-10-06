@@ -19,6 +19,8 @@
 
 Raw provider call → provider-specific code spread through workflow → **problem: workflow tied to one provider**
 
+> **Anti-pattern:** этот код намеренно показывает provider-specific вызов внутри прикладной логики. Он приведён для демонстрации проблемы coupling. Рекомендуемый интерфейс курса — `ModelClient`.
+
 ```python
 # Плохо: прямой вызов SDK внутри бизнес-логики
 from openai import OpenAI
@@ -108,8 +110,8 @@ def validate_structured_output(raw: dict, schema: type[BaseModel]) -> BaseModel:
     try:
         return schema.model_validate(raw)
     except ValidationError as e:
-        # Вернуть structured error для retry
-        raise ProviderError(f"Schema validation failed: {e}") from e
+        # ValidationError поднимается наверх — retry logic решает, что делать
+        raise
 ```
 
 **Failure example:** модель вернула `{"issue_type": "feature"}` — не в enum. Validation падает, workflow получает `ProviderError`, решает: retry / needs_input / blocked.

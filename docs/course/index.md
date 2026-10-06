@@ -48,7 +48,7 @@
 <dt>Week 3</dt>
 <dd>Context: context engineering, state, JIT-контекст, шаблоны ролей</dd>
 <dt>Week 4</dt>
-<dd>Model / Provider: smoke test, structured output, tool calling</dd>
+<dd>Model / Provider: provider abstraction / ModelClient, structured output & validation, tool calling lifecycle, provider failures & retry, mock provider & testing</dd>
 <dt>Week 5</dt>
 <dd>Runtime: ModelClient, State, Workflow, HumanGate, RunPolicy, бюджет</dd>
 <dt>Week 6</dt>
@@ -85,7 +85,7 @@ flowchart TD
 | 1 | baseline + один workflow-кандидат | сравнение топологий, параллельные аналитики |
 | 2 | граф capstone с условиями перехода | реализация второго паттерна |
 | 3 | передача `path:line` evidence | контекстные эксперименты, retrieval |
-| 4 | smoke test выбранного провайдера | локальная модель в Ollama/VS Code/Kilo |
+| 4 | ModelClient + structured output + tool call + mock test | локальная модель в Ollama/VS Code/Kilo |
 | 5 | Workflow с конечным бюджетом на mock | model routing, сравнение провайдеров |
 | 6 | проверки allowlist, approval, denied-сценарии | сравнение с Kilo/Kodacode, Integration Lab |
 | 7 | trace двух запусков, отчёт baseline vs workflow | retrieval eval, LLM-as-judge |
