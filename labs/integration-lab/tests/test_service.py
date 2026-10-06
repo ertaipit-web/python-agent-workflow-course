@@ -208,6 +208,9 @@ async def test_post_then_get_task_consistency(client):
     assert get_response.status_code == 200
     data = get_response.json()
     assert data["task_id"] == task_id
+    # execution_id should be the run_id from trace (per Week 8 spec)
+    if data["execution_id"] is not None:
+        assert data["execution_id"].startswith("run-")
 
 
 @pytest.mark.asyncio

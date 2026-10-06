@@ -103,7 +103,7 @@ python -m integration_lab.service
     "trace": [...]
   },
   "error": null,
-  "execution_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  "execution_id": "run-a1b2c3d4"
 }
 ```
 
@@ -196,8 +196,9 @@ GitHub Actions workflow: `.github/workflows/capstone-ci.yml`
 | Week 7 | Evaluation/Trace | Structured logs + trace + KPI |
 | Week 8 | Capstone | Всё вместе в production сервисе |
 
-## Ограничения (намеренно)
+## Ограничения (намеренно
 
+- ❌ ModelClient (Week 4) не подключён — сервис использует `ScriptedPlanner(calls=[])` для демонстрации lifecycle. Для реального agent workflow подключите LLM-провайдер через ModelClient.
 - ❌ Нет Kubernetes, Kafka, RabbitMQ, Celery
 - ❌ Нет ELK/Grafana/Prometheus stack
 - ❌ Нет Vault/KMS для секретов

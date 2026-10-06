@@ -129,6 +129,7 @@ async def execute_agent_task(
     session_maker = await get_async_session_maker()
     async with session_maker() as session:
         execution = await create_execution(session, task_id, run_id)
+        await update_task_status(session, task_id, "running")
         await session.commit()
         execution_id = execution.id
 
@@ -160,12 +161,13 @@ async def execute_agent_task(
         result_data: dict[str, Any] | None = None
         error_msg: str | None = None
 
-        if report.status == "completed":
+        if report.status == "completed" or report.status == "done":
             result_data = {
                 "status": "completed",
                 "results": [dict(r) for r in report.results],
                 "trace": trace_events,
             }
+            final_status = "completed"
         elif report.status == "needs_approval":
             result_data = {
                 "status": "needs_approval",
@@ -175,19 +177,21 @@ async def execute_agent_task(
                 },
                 "trace": trace_events,
             }
+            final_status = "needs_approval"
         else:
             error_msg = report.reason or "Agent execution failed"
+            final_status = report.status
 
         async with session_maker() as session:
             if result_data is not None:
                 await update_task_status(
-                    session, task_id, report.status, result=result_data,
+                    session, task_id, final_status, result=result_data,
                 )
             else:
                 await update_task_status(
-                    session, task_id, report.status, error=error_msg,
+                    session, task_id, final_status, error=error_msg,
                 )
-            await update_execution(session, execution_id, status=report.status, trace=trace_events)
+            await update_execution(session, execution_id, status=final_status, trace=trace_events)
             await session.commit()
 
     except Exception as e:
@@ -256,7 +260,7 @@ async def get_task_endpoint(task_id: str):
         result = await session.execute(select(Execution).where(Execution.task_id == task_uuid))
         execution = result.scalars().first()
         if execution:
-            execution_id = str(execution.id)
+            execution_id = execution.run_id
 
     return TaskStatusResponse(
         task_id=str(task.id),
