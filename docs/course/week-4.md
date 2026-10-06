@@ -45,7 +45,7 @@ class ModelClient:
         # provider-specific logic здесь, а не в workflow
         ...
 
-    def generate_with_tools(self, messages: list[dict], tools: list[dict]) -> dict:
+    def generate_with_tools(self, messages: list[dict], tools: list[dict]) -> "ToolCall":
         ...
 
 # Workflow использует только общий интерфейс
@@ -114,7 +114,7 @@ def validate_structured_output(raw: dict, schema: type[BaseModel]) -> BaseModel:
         raise
 ```
 
-**Failure example:** модель вернула `{"issue_type": "feature"}` — не в enum. Validation падает, workflow получает `ProviderError`, решает: retry / needs_input / blocked.
+**Failure example:** модель вернула `{"issue_type": "feature"}` — не в enum. Validation выбрасывает `ValidationError`. Retry logic ловит его, делает повторную попытку с error context. Только после исчерпания retry — поднимается `ProviderError`, workflow решает: `needs_input` / `blocked`.
 
 ---
 

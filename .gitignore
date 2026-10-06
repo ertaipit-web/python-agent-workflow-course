@@ -6,4 +6,3 @@ __pycache__/
 *.egg-info/
 tasks/
 *.db
-MERMAID_RENDERING_REPORT.md
