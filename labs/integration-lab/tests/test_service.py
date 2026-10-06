@@ -11,7 +11,7 @@ from integration_lab.service import app
 
 
 # Test settings with SQLite in-memory
-class TestSettings(Settings):
+class IntegrationTestSettings(Settings):
     database_url: str = "sqlite+aiosqlite:///:memory:"
     github_token: str = "test-token"
     github_base_url: str = "https://api.github.com"
@@ -23,7 +23,7 @@ class TestSettings(Settings):
 
 @pytest.fixture(scope="session")
 def test_settings():
-    return TestSettings()
+    return IntegrationTestSettings()
 
 
 @pytest.fixture(scope="session")

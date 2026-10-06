@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, PostgresDsn
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # Database
-    database_url: PostgresDsn = Field(
+    database_url: str = Field(
         default="postgresql+psycopg://postgres:postgres@localhost:5432/agent_course",
         validation_alias="DATABASE_URL",
     )
@@ -41,14 +41,6 @@ class Settings(BaseSettings):
     max_concurrent_tasks: int = 3
     task_timeout_seconds: int = 300
     default_max_retries: int = 2
-
-    @property
-    def database_url_async(self) -> str:
-        """Convert to async URL for SQLAlchemy async engine."""
-        url = str(self.database_url)
-        if url.startswith("postgresql+psycopg://"):
-            return url.replace("postgresql+psycopg://", "postgresql+psycopg://", 1)
-        return url
 
 
 @lru_cache

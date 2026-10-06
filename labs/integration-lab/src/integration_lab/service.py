@@ -12,7 +12,6 @@ import structlog
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from integration_lab.client import IssueApiClient
 from integration_lab.config import get_settings
@@ -134,14 +133,15 @@ async def execute_agent_task(
         execution_id = execution.id
 
     start_time = time.time()
-    trace_events = []
+    trace_events: list[dict[str, Any]] = []
+    report: RunReport | None = None
 
     try:
         runtime = get_runtime()
         runtime.run_id = run_id
         runtime.node_id = "issue_agent"
 
-        report: RunReport = runtime.run(task_description)
+        report = runtime.run(task_description)
 
         trace_events = [
             {
@@ -157,18 +157,15 @@ async def execute_agent_task(
             for e in report.trace
         ]
 
+        result_data: dict[str, Any] | None = None
+        error_msg: str | None = None
+
         if report.status == "completed":
             result_data = {
                 "status": "completed",
                 "results": [dict(r) for r in report.results],
                 "trace": trace_events,
             }
-            await update_task_status(
-                await get_session(),
-                task_id,
-                "completed",
-                result=result_data,
-            )
         elif report.status == "needs_approval":
             result_data = {
                 "status": "needs_approval",
@@ -178,23 +175,18 @@ async def execute_agent_task(
                 },
                 "trace": trace_events,
             }
-            await update_task_status(
-                await get_session(),
-                task_id,
-                "needs_approval",
-                result=result_data,
-            )
         else:
             error_msg = report.reason or "Agent execution failed"
-            await update_task_status(
-                await get_session(),
-                task_id,
-                "failed",
-                error=error_msg,
-            )
 
-        session_maker = await get_async_session_maker()
         async with session_maker() as session:
+            if result_data is not None:
+                await update_task_status(
+                    session, task_id, report.status, result=result_data,
+                )
+            else:
+                await update_task_status(
+                    session, task_id, report.status, error=error_msg,
+                )
             await update_execution(session, execution_id, status=report.status, trace=trace_events)
             await session.commit()
 
@@ -210,7 +202,6 @@ async def execute_agent_task(
             "error_type": type(e).__name__,
             "transition_reason": "system_error",
         })
-        session_maker = await get_async_session_maker()
         async with session_maker() as session:
             await update_execution(session, execution_id, status="failed", trace=trace_events)
             await update_task_status(session, task_id, "failed", error=str(e))
@@ -222,13 +213,8 @@ async def execute_agent_task(
             task_id=str(task_id),
             run_id=run_id,
             latency_ms=latency_ms,
-            status=report.status if 'report' in locals() else "failed",
+            status=report.status if report else "failed",
         )
-
-
-async def get_session() -> AsyncSession:
-    session_maker = await get_async_session_maker()
-    return session_maker()
 
 
 @app.post("/tasks", response_model=TaskResponse, status_code=202)
@@ -261,12 +247,10 @@ async def get_task_endpoint(task_id: str):
     async with session_maker() as session:
         task = await get_task(session, task_uuid)
 
-    if not task:
-        raise HTTPException(status_code=404, detail="Task not found")
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
 
-    execution_id = None
-    session_maker = await get_async_session_maker()
-    async with session_maker() as session:
+        execution_id = None
         from sqlalchemy import select
         result = await session.execute(select(Execution).where(Execution.task_id == task_uuid))
         execution = result.scalars().first()

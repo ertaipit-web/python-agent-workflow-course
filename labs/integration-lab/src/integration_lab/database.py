@@ -8,7 +8,13 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, ForeignKey, String, Text, select
 from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncAttrs,
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import CHAR, TypeDecorator
 
@@ -116,7 +122,7 @@ class Execution(Base):
     )
 
 
-async def init_db(database_url: str, poolclass=None) -> tuple:
+async def init_db(database_url: str, poolclass=None) -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]:
     connect_args = {"check_same_thread": False} if "sqlite" in database_url else {}
     engine = create_async_engine(
         database_url,
