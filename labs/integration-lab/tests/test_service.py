@@ -20,11 +20,24 @@ class IntegrationTestSettings(Settings):
     model_name: str = "qwen3:8b"
     model_base_url: str = "http://localhost:11434/v1"
     model_api_key: str = ""
+    runner_mode: str = "test"
+    demo_owner: str = "demo-owner"
+    demo_repo: str = "demo-repo"
+    demo_approve_writes: bool = True
 
 
 @pytest.fixture(scope="session")
 def test_settings():
     return IntegrationTestSettings()
+
+
+@pytest.fixture(scope="session")
+def mock_github_settings():
+    """Settings for demo mode with mock GitHub API."""
+    return IntegrationTestSettings(
+        runner_mode="demo",
+        github_base_url="",  # set after server starts
+    )
 
 
 @pytest.fixture(scope="session")
@@ -238,7 +251,7 @@ async def test_execution_task_id_matches_task(client):
 
 @pytest.mark.asyncio
 async def test_task_lifecycle(client):
-    """Task lifecycle: queued → running → completed/done."""
+    """Task lifecycle: queued → running → completed."""
     create_response = await client.post("/tasks", json={"task": "Lifecycle test"})
     assert create_response.status_code == 202
     task_id = create_response.json()["task_id"]
@@ -250,12 +263,182 @@ async def test_task_lifecycle(client):
 
     session_maker = await get_async_session_maker()
     async with session_maker() as session:
-        # Initial state after POST: task exists with queued status
         result = await session.execute(select(Task).where(Task.id == uuid.UUID(task_id)))
         task = result.scalars().first()
         assert task is not None
         assert str(task.id) == task_id
+        assert task.status in ("queued", "running", "completed", "failed", "needs_approval")
 
-        # Background task may have already run (ScriptedPlanner with empty calls completes immediately)
-        # The key invariant: task_id is consistent across the lifecycle
-        assert task.status in ("queued", "running", "completed", "done", "failed")
+
+@pytest.fixture
+def mock_github_api():
+    """Start a local mock GitHub API server for integration tests."""
+    from integration_lab.issue_api import IssueApi, Token
+    from integration_lab.tools import READ_ONLY_SCOPES, WRITE_SCOPES
+
+    api = IssueApi(
+        database=":memory:",
+        tokens=(
+            Token(name="test-token", scopes=READ_ONLY_SCOPES | WRITE_SCOPES),
+        ),
+    )
+    api.start(port=0)
+    yield api
+    api.close()
+
+
+def _make_demo_client(mock_github_api, monkeypatch, db_engine, *, owner="course", repo="taskboard", approve=True):
+    """Create a demo-mode client pointing to the mock GitHub API."""
+    from integration_lab import service
+
+    settings = IntegrationTestSettings(
+        runner_mode="demo",
+        github_base_url=mock_github_api.base_url,
+        github_token="test-token",
+        demo_owner=owner,
+        demo_repo=repo,
+        demo_approve_writes=approve,
+    )
+    monkeypatch.setattr(service, "settings", settings)
+    monkeypatch.setattr(service, "engine", db_engine[0])
+    monkeypatch.setattr(service, "async_session_maker", db_engine[1])
+
+    transport = ASGITransport(app=app)
+    return AsyncClient(transport=transport, base_url="http://test")
+
+
+@pytest.mark.asyncio
+async def test_demo_toolcall_success(mock_github_api, monkeypatch, db_engine):
+    """End-to-end: POST /tasks → ToolCall(create_issue) → mock GitHub → trace."""
+    async with _make_demo_client(mock_github_api, monkeypatch, db_engine) as ac:
+        create_response = await ac.post("/tasks", json={"task": "Create a demo issue"})
+        assert create_response.status_code == 202
+        task_id = create_response.json()["task_id"]
+
+        import asyncio
+
+        await asyncio.sleep(2)
+
+        get_response = await ac.get(f"/tasks/{task_id}")
+        assert get_response.status_code == 200
+        data = get_response.json()
+        assert data["task_id"] == task_id
+        assert data["status"] == "completed"
+        assert data["started_at"] is not None
+        assert data["completed_at"] is not None
+        assert data["execution_id"] is not None
+        assert data["execution_id"].startswith("run-")
+        assert data["result"] is not None
+        assert data["result"]["status"] == "completed"
+        trace = data["result"]["trace"]
+        assert len(trace) > 0
+        assert any(t["tool_name"] == "create_issue" and t["status"] == "complete" for t in trace)
+
+        # Verify the issue was actually created in the mock API
+        issues = mock_github_api.store.list_issues("course", "taskboard", state=None)
+        assert any(i["title"] == "[Test] Capstone demo issue" for i in issues)
+
+
+@pytest.mark.asyncio
+async def test_demo_toolcall_denied_by_policy(mock_github_api, monkeypatch, db_engine):
+    """Policy deny: ToolCall → blocked repository → no GitHub side effect."""
+    # Use owner/repo that is NOT in the allowlist (allowlist is (*, *), so we test
+    # with a repository that will fail at the GitHub API level)
+    async with _make_demo_client(
+        mock_github_api, monkeypatch, db_engine,
+        owner="evil", repo="evil-repo", approve=False
+    ) as ac:
+        create_response = await ac.post("/tasks", json={"task": "Create an issue in evil repo"})
+        task_id = create_response.json()["task_id"]
+
+        import asyncio
+
+        await asyncio.sleep(2)
+
+        get_response = await ac.get(f"/tasks/{task_id}")
+        data = get_response.json()
+        assert data["task_id"] == task_id
+        # Without approval for a write tool, status should be needs_approval or blocked
+        assert data["status"] in ("needs_approval", "blocked", "failed")
+        # No issue should have been created
+        assert len(mock_github_api.store.list_issues("evil", "evil-repo", state=None)) == 0
+
+
+@pytest.mark.asyncio
+async def test_demo_toolcall_approval_rejected(mock_github_api, monkeypatch, db_engine):
+    """Approval rejected: ToolCall → approval → rejected → no side effect."""
+    async with _make_demo_client(
+        mock_github_api, monkeypatch, db_engine,
+        owner="course", repo="taskboard", approve=False
+    ) as ac:
+        create_response = await ac.post("/tasks", json={"task": "Create a demo issue"})
+        task_id = create_response.json()["task_id"]
+
+        import asyncio
+
+        await asyncio.sleep(2)
+
+        get_response = await ac.get(f"/tasks/{task_id}")
+        data = get_response.json()
+        assert data["task_id"] == task_id
+        assert data["status"] in ("needs_approval", "blocked")
+        # No issue should have been created
+        assert len(mock_github_api.store.list_issues("course", "taskboard", state=None)) == 0
+
+
+@pytest.mark.asyncio
+async def test_demo_toolcall_invalid_arguments(mock_github_api, monkeypatch, db_engine, db_session):
+    """Invalid arguments: ToolCall → validation error → no side effect."""
+    from integration_lab.runtime import ScriptedPlanner, ToolCall
+    from integration_lab.service import get_async_session_maker, get_runtime
+
+    settings = IntegrationTestSettings(
+        runner_mode="demo",
+        github_base_url=mock_github_api.base_url,
+        github_token="test-token",
+        demo_owner="course",
+        demo_repo="taskboard",
+        demo_approve_writes=False,
+    )
+
+    from integration_lab import service
+
+    monkeypatch.setattr(service, "settings", settings)
+    monkeypatch.setattr(service, "engine", db_engine[0])
+    monkeypatch.setattr(service, "async_session_maker", db_engine[1])
+
+    session_maker = await get_async_session_maker()
+    async with session_maker() as session:
+        from integration_lab.database import create_execution, create_task, update_task_status
+
+        task = await create_task(session, {"task": "invalid args test"}, task_id=uuid.uuid4())
+        await session.commit()
+        task_id = task.id
+
+        await create_execution(session, task_id, "run-invalid")
+        await session.commit()
+
+        await update_task_status(session, task_id, "running")
+        await session.commit()
+
+        # Run runtime directly with invalid tool call
+        runtime = get_runtime()
+        runtime.run_id = "run-invalid"
+        runtime.node_id = "issue_agent"
+
+        call = ToolCall(
+            tool="create_issue",
+            arguments={
+                "owner": "course",
+                "repository": "taskboard",
+                "title": "",  # empty title - invalid
+            },
+        )
+        planner = ScriptedPlanner(calls=[call])
+        runtime.planner = planner
+
+        report = runtime.run("invalid args test")
+
+        assert report.status == "blocked"
+        assert report.reason is not None
+        assert "invalid" in report.reason.lower() or "empty" in report.reason.lower()

@@ -24,7 +24,7 @@ from integration_lab.database import (
     update_execution,
     update_task_status,
 )
-from integration_lab.runtime import AgentRuntime, RunReport, ScriptedPlanner
+from integration_lab.runtime import AgentRuntime, RunReport, ScriptedPlanner, ToolCall
 
 structlog.configure(
     processors=[
@@ -112,12 +112,40 @@ def get_runtime() -> AgentRuntime:
     )
 
     from integration_lab.runtime import Policy
-    policy = Policy(
-        granted_scopes=frozenset(["repo"]),
-        allowed_repositories=frozenset([("*", "*")]),
-    )
+    from integration_lab.tools import READ_ONLY_SCOPES, WRITE_SCOPES
 
-    planner = ScriptedPlanner(calls=[])
+    if settings.runner_mode == "demo":
+        planner = ScriptedPlanner(calls=[
+            ToolCall(
+                tool="create_issue",
+                arguments={
+                    "owner": settings.demo_owner,
+                    "repository": settings.demo_repo,
+                    "title": "[Test] Capstone demo issue",
+                    "body": "Created by Production Layer demo mode.",
+                    "labels": ["demo"],
+                },
+            )
+        ])
+        allowed = frozenset([(settings.demo_owner, settings.demo_repo)])
+        if settings.demo_approve_writes:
+            policy = Policy(
+                granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
+                allowed_repositories=allowed,
+                approver=lambda call, reason: True,
+            )
+        else:
+            policy = Policy(
+                granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
+                allowed_repositories=allowed,
+            )
+    else:
+        policy = Policy(
+            granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
+            allowed_repositories=frozenset([("*", "*")]),
+        )
+        planner = ScriptedPlanner(calls=[])
+
     return AgentRuntime(client=client, policy=policy, planner=planner)
 
 

@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     task_timeout_seconds: int = 300
     default_max_retries: int = 2
 
+    # Production Layer demo mode
+    runner_mode: str = Field(default="test", validation_alias="RUNNER_MODE")
+    demo_owner: str = Field(default="demo-owner", validation_alias="GITHUB_OWNER")
+    demo_repo: str = Field(default="demo-repo", validation_alias="GITHUB_REPO")
+    demo_approve_writes: bool = Field(default=True, validation_alias="DEMO_APPROVE_WRITES")
+
 
 @lru_cache
 def get_settings() -> Settings:

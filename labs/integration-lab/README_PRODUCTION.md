@@ -191,14 +191,38 @@ GitHub Actions workflow: `.github/workflows/capstone-ci.yml`
 | Week 1 | Baseline/workflow | Baseline measurement в KPI |
 | Week 2 | Workflows/Handoff | AgentRuntime planner → tools |
 | Week 3 | Context/State | PostgreSQL persistent state |
-| Week 4 | ModelClient | LLM integration через интерфейс |
-| Week 5-6 | Tools/Policy | GitHub tools + allowlist + approval |
-| Week 7 | Evaluation/Trace | Structured logs + trace + KPI |
-| Week 8 | Capstone | Всё вместе в production сервисе |
+| Week 4 | ModelClient | `ScriptedPlanner` — ModelClient не обязателен; deterministic flow |
+
+## Demo Mode
+
+По умолчанию Production Layer использует `RUNNER_MODE=test` с `ScriptedPlanner(calls=[])` — задача создаётся, но без выполнения tool calls.
+
+Для демонстрации полного vertical slice включите `RUNNER_MODE=demo`:
+
+```
+POST /tasks → Agent Runtime → ToolCall(create_issue) → Policy → Approval → GitHub API → ToolResult → Trace → Result
+```
+
+В demo mode:
+- `ScriptedPlanner` возвращает один `ToolCall(create_issue)`;
+- `Policy` проверяет allowlist репозиториев и scopes;
+- `create_issue` требует human approval (side effect), который auto-approved если `DEMO_APPROVE_WRITES=true`;
+- GitHub API вызывается через `IssueApiClient` (реальный GitHub или mock).
+
+Для CI используется mock GitHub API (`IssueApi` из `issue_api.py`), не требующий credentials.
+
+### Конфигурация demo mode
+
+| Переменная | Описание | Default |
+|------------|----------|---------|
+| `RUNNER_MODE` | `test` (пустой planner) или `demo` (create_issue ToolCall) | `test` |
+| `GITHUB_OWNER` | Owner для demo create_issue | `demo-owner` |
+| `GITHUB_REPO` | Repository для demo create_issue | `demo-repo` |
+| `DEMO_APPROVE_WRITES` | Auto-approve write operations в demo mode | `true` |
 
 ## Ограничения (намеренно
 
-- ❌ ModelClient (Week 4) не подключён — сервис использует `ScriptedPlanner(calls=[])` для демонстрации lifecycle. Для реального agent workflow подключите LLM-провайдер через ModelClient.
+- ❌ ModelClient (Week 4) не подключён — сервис использует `ScriptedPlanner` как deterministic planner. Для реального agent workflow подключите LLM-провайдер через ModelClient.
 - ❌ Нет Kubernetes, Kafka, RabbitMQ, Celery
 - ❌ Нет ELK/Grafana/Prometheus stack
 - ❌ Нет Vault/KMS для секретов
