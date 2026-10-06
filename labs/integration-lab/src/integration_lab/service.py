@@ -1,39 +1,31 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 import sys
 import time
 import uuid
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
+import structlog
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from integration_lab.client import IssueApiClient
 from integration_lab.config import get_settings
 from integration_lab.database import (
-    Base,
     Execution,
-    Task,
-    create_async_engine,
     create_execution,
     create_task,
     get_task,
     init_db,
-    list_tasks,
     update_execution,
     update_task_status,
 )
-from integration_lab.runtime import AgentRuntime, RunReport, ScriptedPlanner, ToolCall
-from integration_lab.client import IssueApiClient
-from integration_lab.tools import build_registry
-from integration_lab.errors import IntegrationError
-
-import structlog
+from integration_lab.runtime import AgentRuntime, RunReport, ScriptedPlanner
 
 structlog.configure(
     processors=[
@@ -59,7 +51,7 @@ async def get_async_session_maker():
     """Get or create the async session maker. Initializes DB if not already done."""
     global async_session_maker, engine
     if async_session_maker is None:
-        async_session_maker = await init_db(str(settings.database_url))
+        engine, async_session_maker = await init_db(str(settings.database_url))
     return async_session_maker
 
 
@@ -67,7 +59,7 @@ async def get_async_session_maker():
 async def lifespan(app: FastAPI):
     global engine, async_session_maker
     logger.info("starting_up", service=settings.service_name)
-    async_session_maker = await init_db(str(settings.database_url))
+    engine, async_session_maker = await init_db(str(settings.database_url))
     yield
     logger.info("shutting_down", service=settings.service_name)
     if engine:
@@ -295,7 +287,7 @@ async def get_task_endpoint(task_id: str):
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    return HealthResponse(service=settings.service_name, timestamp=datetime.utcnow())
+    return HealthResponse(service=settings.service_name, timestamp=datetime.now(UTC))
 
 
 @app.exception_handler(HTTPException)

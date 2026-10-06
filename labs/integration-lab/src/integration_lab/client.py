@@ -121,7 +121,7 @@ class IssueApiClient:
                 if isinstance(mapped, ServerError) and idempotent and attempt < self._max_attempts:
                     continue
                 raise mapped from None
-            except (TimeoutError, socket.timeout) as error:
+            except TimeoutError as error:
                 if not idempotent:
                     raise WriteOutcomeUnknownError(
                         f"{method} {path} timed out after the request was sent"

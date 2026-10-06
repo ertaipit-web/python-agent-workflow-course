@@ -106,8 +106,10 @@ def create_report(
         f"- Allowlisted repositories: {allowlist}",
         f"- Tools exposed to the agent: {', '.join(spec.name for spec in runtime.tools())}",
         "",
-        "The issue API also implements DELETE /repos/{owner}/{repository}. No agent tool wraps "
-        "it, so the agent cannot reach it.",
+        (
+            "The issue API also implements DELETE /repos/{owner}/{repository}. No agent tool wraps "
+            "it, so the agent cannot reach it."
+        ),
         "",
     ]
     lines.extend(run.lines())
@@ -118,8 +120,10 @@ def create_report(
             "",
             f"External HTTP calls made by the client: {client.call_count}.",
             "",
+            (
             "Read tools run without a human. Tools with an external side effect need both an "
-            "approval and a granted scope before they reach the API.",
+            "approval and a granted scope before they reach the API."
+        ),
             "",
         ]
     )

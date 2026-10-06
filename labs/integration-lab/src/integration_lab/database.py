@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, String, Text, func, select, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB, UUID as PG_UUID
+from sqlalchemy import DateTime, ForeignKey, String, Text, select
+from sqlalchemy.dialects.postgresql import JSONB as PG_JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy.types import TypeDecorator, CHAR
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.types import CHAR, TypeDecorator
 
 
 class Base(AsyncAttrs, DeclarativeBase):
@@ -82,7 +82,7 @@ class Task(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False
     )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -105,7 +105,7 @@ class Execution(Base):
     trace: Mapped[list[dict[str, Any]]] = mapped_column(JSON(), nullable=False, default=list)
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False
     )
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -116,7 +116,7 @@ class Execution(Base):
     )
 
 
-async def init_db(database_url: str, poolclass=None) -> async_sessionmaker[AsyncSession]:
+async def init_db(database_url: str, poolclass=None) -> tuple:
     connect_args = {"check_same_thread": False} if "sqlite" in database_url else {}
     engine = create_async_engine(
         database_url,
@@ -127,7 +127,7 @@ async def init_db(database_url: str, poolclass=None) -> async_sessionmaker[Async
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    return async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    return engine, async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def create_task(session: AsyncSession, payload: dict[str, Any]) -> Task:
@@ -154,9 +154,9 @@ async def update_task_status(
         return None
     task.status = status
     if status == "running" and not task.started_at:
-        task.started_at = datetime.now(timezone.utc)
+        task.started_at = datetime.now(UTC)
     if status in ("completed", "failed"):
-        task.completed_at = datetime.now(timezone.utc)
+        task.completed_at = datetime.now(UTC)
     if result is not None:
         task.result = result
     if error is not None:
@@ -191,7 +191,7 @@ async def update_execution(
     if trace is not None:
         execution.trace = trace
     if status in ("completed", "failed"):
-        execution.completed_at = datetime.now(timezone.utc)
+        execution.completed_at = datetime.now(UTC)
     await session.flush()
     return execution
 

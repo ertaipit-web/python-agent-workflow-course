@@ -26,7 +26,7 @@ _ARGUMENT_PREVIEW = 120
 class Policy:
     granted_scopes: frozenset[str]
     allowed_repositories: frozenset[tuple[str, str]]
-    approver: Callable[["ToolCall", str], bool] | None = None
+    approver: Callable[[ToolCall, str], bool] | None = None
 
     def allows_repository(self, arguments: Mapping[str, object]) -> bool:
         repository = (str(arguments.get("owner", "")), str(arguments.get("repository", "")))

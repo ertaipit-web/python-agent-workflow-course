@@ -158,15 +158,15 @@ class IssueApi:
         *,
         database: str | Path = ":memory:",
         tokens: tuple[Token, ...] = (),
-        faults: FaultPlan = FaultPlan(),
+        faults: FaultPlan | None = None,
     ) -> None:
         self.store = IssueStore(database)
-        self.faults = faults
+        self.faults = faults if faults is not None else FaultPlan()
         self._tokens = {token.name: token for token in tokens}
         self._server: _Server | None = None
         self._thread: threading.Thread | None = None
-        self._remaining_read_failures = faults.fail_reads
-        self._remaining_write_failures = faults.fail_writes
+        self._remaining_read_failures = self.faults.fail_reads
+        self._remaining_write_failures = self.faults.fail_writes
         self._counter_lock = threading.Lock()
 
     @property
@@ -242,13 +242,13 @@ class _Handler(BaseHTTPRequestHandler):
     def api(self) -> IssueApi:
         server = self.server
         if not isinstance(server, _Server):
-            raise RuntimeError("The issue API must be served by its own HTTP server")
+            raise TypeError("The issue API must be served by its own HTTP server")
         return server.api
 
     def log_message(self, format: str, *arguments: Any) -> None:
         return
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         path = urlparse(self.path).path
         issues_match = _ISSUES_PATH.match(path)
         if issues_match is not None:
@@ -260,7 +260,7 @@ class _Handler(BaseHTTPRequestHandler):
             return
         self._fail(404, "not_found", f"No route for GET {path}")
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         path = urlparse(self.path).path
         match = _ISSUES_PATH.match(path)
         if match is None:
@@ -271,7 +271,7 @@ class _Handler(BaseHTTPRequestHandler):
             return
         self._write(SCOPE_WRITE, match, lambda found: self._create_issue(found, payload))
 
-    def do_PATCH(self) -> None:  # noqa: N802
+    def do_PATCH(self) -> None:
         path = urlparse(self.path).path
         match = _ISSUE_PATH.match(path)
         if match is None:
@@ -282,7 +282,7 @@ class _Handler(BaseHTTPRequestHandler):
             return
         self._write(SCOPE_WRITE, match, lambda found: self._close_issue(found, payload))
 
-    def do_DELETE(self) -> None:  # noqa: N802
+    def do_DELETE(self) -> None:
         path = urlparse(self.path).path
         match = _REPOSITORY_PATH.match(path)
         if match is None:

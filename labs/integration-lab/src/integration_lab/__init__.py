@@ -5,12 +5,12 @@ from integration_lab.issue_api import SCOPE_READ, SCOPE_WRITE, IssueApi, Token
 from integration_lab.runtime import AgentRuntime, Policy, ScriptedPlanner, ToolCall
 
 __all__ = [
+    "SCOPE_READ",
+    "SCOPE_WRITE",
     "AgentRuntime",
     "IssueApi",
     "IssueApiClient",
     "Policy",
-    "SCOPE_READ",
-    "SCOPE_WRITE",
     "ScriptedPlanner",
     "Token",
     "ToolCall",

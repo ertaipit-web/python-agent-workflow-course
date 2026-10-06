@@ -28,7 +28,7 @@ def test_settings():
 
 @pytest.fixture(scope="session")
 async def db_session(test_settings):
-    async_session_maker = await init_db(str(test_settings.database_url), poolclass=StaticPool)
+    _, async_session_maker = await init_db(str(test_settings.database_url), poolclass=StaticPool)
     async with async_session_maker() as session:
         yield session
 
