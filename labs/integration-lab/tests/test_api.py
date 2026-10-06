@@ -5,6 +5,7 @@ import time
 from collections.abc import Iterator
 from http.client import HTTPConnection
 from pathlib import Path
+from typing import Self
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -269,7 +270,7 @@ def test_read_is_retried_after_a_connection_reset(api: IssueApi, monkeypatch) ->
         def read(self) -> bytes:
             return b'{"total_count": 2, "issues": []}'
 
-        def __enter__(self) -> "Response":
+        def __enter__(self) -> Self:
             return self
 
         def __exit__(self, *arguments: object) -> None:

@@ -5,9 +5,9 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.pool import StaticPool
 
-from integration_lab.service import app
-from integration_lab.database import Task, create_task, get_task, init_db
 from integration_lab.config import Settings
+from integration_lab.database import create_task, get_task, init_db
+from integration_lab.service import app
 
 
 # Test settings with SQLite in-memory
@@ -140,8 +140,7 @@ async def test_task_status_updates(db_session: AsyncSession):
 
 @pytest.mark.asyncio
 async def test_database_models_have_correct_schema(db_session: AsyncSession):
-    from integration_lab.database import Execution, create_execution, update_execution
-    from integration_lab.database import create_task
+    from integration_lab.database import create_execution, create_task, update_execution
 
     task = await create_task(db_session, {"task": "Test"})
     await db_session.commit()
