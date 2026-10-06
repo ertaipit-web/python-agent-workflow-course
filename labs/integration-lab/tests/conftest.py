@@ -6,12 +6,22 @@ DATABASE_URL and GITHUB_TOKEN environment variables to leak into tests.
 This conftest removes those env vars before test collection.
 """
 import os
+import sys
 
 # Remove env vars that pydantic-settings would read before test collection
 for _var in ("DATABASE_URL", "GITHUB_TOKEN", "GITHUB_BASE_URL",
              "MODEL_PROVIDER", "MODEL_NAME", "MODEL_BASE_URL", "MODEL_API_KEY"):
     os.environ.pop(_var, None)
 
-# Also clear the lru_cache on get_settings so it doesn't return stale configs
-import integration_lab.config as _cfg
-_cfg.get_settings.cache_clear()
+# Clear the lru_cache on get_settings so it doesn't return stale configs
+try:
+    import integration_lab.config as _cfg
+    _cfg.get_settings.cache_clear()
+except ImportError:
+    # If the module isn't on the path yet, add it manually
+    import pathlib
+    src_path = pathlib.Path(__file__).parent.parent / "src"
+    if str(src_path) not in sys.path:
+        sys.path.insert(0, str(src_path))
+    import integration_lab.config as _cfg
+    _cfg.get_settings.cache_clear()
