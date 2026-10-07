@@ -112,6 +112,12 @@ flowchart TD
 !!! takeaway "Capstone checkpoint"
     **Week 1.** `Baseline` готов: problem-definition, acceptance criteria и один workflow-кандидат на 3–5 issue.
 
+### Проверь себя
+
+1. Чем workflow отличается от agent?
+2. В каком случае multi-agent решение избыточно?
+3. Что именно ты будешь сравнивать со своим Capstone workflow?
+
 ---
 
 ## Навигация

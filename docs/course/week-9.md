@@ -18,6 +18,19 @@
 !!! note "Продолжаем тот же Capstone"
     У нас уже есть спроектированный и оценённый Capstone. Теперь превращаем его в production-like сервис: добавляем границу API, persistence, безопасную интеграцию, эксплуатационную проверку и сопоставляем результат с бизнес-целями из Week 8.
 
+### Вспомни прошлую неделю
+
+1. Какой основной выбор Week 8 фиксирует границу автоматизации для Capstone?
+2. Где в предыдущем workflow уже есть `State`, `RunPolicy` и `HumanGate`?
+
+## Core vs Extension
+
+**Core:** productionize the same Capstone, not build a new agent from scratch. Для зачёта важно показать, как `Workflow` из прошлых недель становится service boundary: API, persistent state, side effects through tool policy, async execution, observability. 
+
+**Extension:** конкретные SDK/provider details, optional async framework tuning, advanced deployment patterns, extra monitoring and queue tools. Это полезно, но не является обязательным для понимания Week 9.
+
+> **Главный смысл:** runtime и business workflow уже известны; Week 9 показывает, как их безопасно вынести в работающий production-like сервис.
+
 ## Production Layer: от agent workflow к production-сервису
 
 Capstone не заканчивается работающим agent workflow. Следующий инженерный шаг — **productionize** то, что построено: завернуть в API, сохранить состояние, подключить реальную внешнюю систему, безопасно выполнять side effects, контейнеризировать, наблюдать, тестировать и измерить бизнес-эффект.
@@ -31,18 +44,21 @@ Capstone не заканчивается работающим agent workflow. С
 flowchart TD
     Client["Client\n(HTTP)"] --> FastAPI["FastAPI Service\nPOST /tasks\nGET /tasks/{id}\nGET /health"]
     FastAPI --> TaskStore[("Task Store\nPostgreSQL")]
-    FastAPI --> Runtime["Agent Runtime\n(из Integration Lab)"]
-    Runtime --> Model["ModelClient\n(Week 4)"]
-    Runtime --> Tools["Tools + Policy\n(Week 5-6)"]
+    FastAPI --> Runtime["Agent Runtime\n(known workflow\nScriptedPlanner + Policy + HumanGate)"]
+    Runtime --> Planner["Workflow / Planner\n(Weeks 2-5)"]
+    Runtime --> Policy["Policy + Approval\n(Weeks 5-6)"]
+    Planner -. optional .-> Model["ModelClient\n(Week 4, implementation detail)"]
+    Policy --> Tools["Tool execution\nGitHub / API / shell"]
     Tools --> External["External API\nGitHub / др."]
     Runtime --> Results[("Results\nPersistent State")]
     Runtime --> Observability["Logs / Traces / Eval\n(Week 7)"]
     classDef svc fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
     classDef db fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
     classDef ext fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
-    class FastAPI svc;
+    classDef core fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
+    class FastAPI,Runtime,Planner,Policy svc;
     class TaskStore,Results db;
-    class External ext;
+    class Model,External ext;
 ```
 
 ---
@@ -83,10 +99,12 @@ GET  /health          → liveness probe
 | `blocked` | Ограничение policy (tool не зарегистрирован, repository не в allowlist, не хватает scope, invalid arguments) | установлено |
 
 `blocked` отличается от `failed`:
-- `failed` — системная ошибка (исключение, timeout, provider unavailable);
+- `failed` — системная ошибка после старта выполнения, например исключение, timeout, provider unavailable или исчерпание retry budget;
 - `blocked` — политика отклонила действие до исполнения, причина в `error`/`trace`.
 
 `blocked` и `failed` — terminal-статусы и фиксируют `completed_at`. `needs_approval` — non-terminal persisted snapshot остановленного execution на HumanGate; `completed_at = null`. Текущий сервис не предоставляет resume endpoint, поэтому это не полноценное возобновляемое состояние очереди, не success и не completed execution.
+
+> **Важно:** после исчерпания retry budget для безопасной операции execution заканчивается как `failed`, а не как `blocked`. `blocked` означает «действие не было разрешено до исполнения».
 
 Цель: показать, как agent workflow становится сервисом, доступным другим системам.
 
@@ -169,7 +187,7 @@ Result persisted
 
 **Async execution details (#3):**
 
-`execute_agent_task` — async function, но `runtime.run()` вызывает `IssueApiClient`, который использует blocking `urllib.request.urlopen()`. Blocking I/O выносится в thread через `asyncio.to_thread`, чтобы event loop оставался responsive:
+`execute_agent_task` — async function, но `runtime.run()` вызывает `IssueApiClient`, который использует blocking `urllib.request.urlopen()`. Blocking I/O выносится в thread через `asyncio.to_thread`, чтобы event loop оставался responsive. Если retry budget исчерпан после повторов безопасного чтения и результат всё ещё не получен, выполнение сохраняется как `failed` и не маскируется под `blocked`:
 
 ```python
 # runtime.run() → IssueApiClient → urllib.request.urlopen() is blocking I/O.
@@ -499,11 +517,11 @@ Jitter предотвращает синхронные повторы при rat
 
 | Ошибка | Retryable? | Поведение |
 |---|---|---|
-| `5xx` на чтении (GET) | Да | Повтор с backoff в пределах бюджета, затем `blocked` |
+| `5xx` на чтении (GET) | Да | Повтор с backoff в пределах бюджета, затем `failed` |
 | Connection reset на чтении | Да | Повтор с backoff |
 | `5xx` на записи (POST/PATCH) | Нет | `WriteOutcomeUnknownError` — эффект мог примениться, повтор не выполняется автоматически |
 | Connection lost на записи | Нет | `WriteOutcomeUnknownError` — повтор не выполняется |
-| Timeout на чтении | Да | Повтор с backoff, затем `TransportTimeoutError` |
+| Timeout на чтении | Да | Повтор с backoff, затем `TransportTimeoutError` и `failed` |
 | Timeout на записи | Нет | `WriteOutcomeUnknownError` — запрос отправлен, эффект мог примениться |
 | `401` / `403` | Нет | `AuthenticationError` / `PermissionDeniedError` — тихих повторов нет |
 | `404` | Нет | `NotFoundError` |
@@ -535,6 +553,12 @@ Jitter предотвращает синхронные повторы при rat
 - measured KPI сопоставлены с целями solution design Week 8.
 
 > **Итог Week 9:** выбранное решение поставлено как проверяемый production-like сервис; архитектура остаётся той, что была обоснована в Week 8.
+
+### Проверь себя
+
+1. Чем `blocked` отличается от `failed` в production execution?
+2. Почему `ModelClient` в Week 9 остаётся implementation detail, а не основным архитектурным центром?
+3. Какой outcome из Week 8 должен стать измеримым KPI в Week 9?
 
 ---
 

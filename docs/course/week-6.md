@@ -18,6 +18,11 @@
 !!! note "Что меняем в Capstone"
     **Week 6.** Добавляем tool registry, policy и permission boundary. Integration Lab учит механику изолированно — затем переносим `Tool → Policy → Approval → Trace` в наш Capstone workflow.
 
+### Вспомни прошлую неделю
+
+1. Какие ограничения `RunPolicy` удерживают workflow в рамках бюджета?
+2. Где runtime должен остановить Capstone до side effect?
+
 ## Материал
 
 Вот конкретная причина, по которой тема существует. Агенту дали инструмент `write_file(path, content)`. Инструкция в промпте гласит: «не трогай чужие файлы». Модель ошибается — и пишет куда-то ещё, потому что ограничение было в тексте, а не в системе.
@@ -111,6 +116,12 @@ registry с краткими метаданными
 
 !!! takeaway "Capstone checkpoint"
     **Week 6.** `Tool + permission boundary` работают: allowlist, scope, approval gate, external integration в Capstone.
+
+### Проверь себя
+
+1. Чем Policy отличается от Permission?
+2. Почему approval не заменяет allowlist и проверку scope?
+3. Какой side effect в Capstone требует HumanGate?
 
 ---
 

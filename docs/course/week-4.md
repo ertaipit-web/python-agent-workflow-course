@@ -18,6 +18,11 @@
 !!! note "Что меняем в Capstone"
     **Week 4.** Выносим model call за ModelClient boundary: structured output validation, tool calling lifecycle, retry/failure handling. Смена провайдера больше не требует переписывания workflow.
 
+### Вспомни прошлую неделю
+
+1. Чем отличаются State, Context и Evidence?
+2. Где в Capstone хранится факт, а где шаг получает только нужный ему контекст?
+
 ## Worked example: why provider abstraction
 
 Raw provider call → provider-specific code spread through workflow → **problem: workflow tied to one provider**
@@ -62,7 +67,9 @@ Workflow не знает деталей provider SDK. Смена провайд�
 
 ## Материал
 
-### Provider experiment: один workflow — два провайдера
+### Extension / Experiment: один workflow — два провайдера
+
+Сравнение провайдеров необязательно. Это эксперимент для желающих измерить, как выбор модели меняет latency, cost и quality; техническое ядро недели от него не зависит.
 
 ```text
 Provider A (OpenAI)          Provider B (Ollama local)
@@ -84,6 +91,10 @@ PROVIDER_CONFIGS = {
 model = ModelClient(**PROVIDER_CONFIGS["local"])  # или "cloud"
 result = model.generate(messages, schema=AnalysisSchema.model_json_schema())
 ```
+
+### Обязательное ядро: контролируемый model lifecycle
+
+Для Core достаточно одного выбранного провайдера за `ModelClient`: валидируйте structured output, проверяйте предложенный tool call до исполнения, обработайте ошибки и замените provider на mock в тесте.
 
 ---
 
@@ -263,9 +274,14 @@ def test_workflow_handles_invalid_output():
 **Расширение:** сравнить два провайдера (cloud + local) на одном наборе задач; зафиксировать latency, cost, quality.
 {: .course-note .course-note--extension }
 
+**Extension / Experiment:** provider-specific параметры, подробное сравнение privacy и локального/облачного запуска не нужны для зачёта Core.
+{: .course-note .course-note--extension }
+
 ---
 
-## После этой недели я могу {: .course-section .course-section--result }
+## Результат недели {: .course-section .course-section--result }
+
+После этой недели я могу:
 
 - заменить provider без переписывания workflow;
 - валидировать structured output через schema;
@@ -275,7 +291,13 @@ def test_workflow_handles_invalid_output():
 - учитывать latency / cost / privacy при выборе модели.
 
 !!! takeaway "Capstone checkpoint"
-    **Week 4.** `ModelClient` интегрирован: provider abstraction, structured output validation, mock provider в тестах.
+    **Week 4.** Provider-specific SDK скрыт за `ModelClient`, а tool calling проходит контролируемый lifecycle: proposal → validation → execution → result.
+
+### Проверь себя
+
+1. Какую зависимость `ModelClient` прячет от workflow?
+2. Чем tool proposal отличается от tool execution?
+3. Какой вызов Capstone теперь можно подменить mock provider?
 
 ---
 

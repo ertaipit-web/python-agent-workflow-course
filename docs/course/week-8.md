@@ -18,6 +18,11 @@
 !!! note "Что меняем в Capstone"
     **Week 8.** Не начинаем новый проект. Выбираем бизнес-процесс, уточняем automation opportunity и фиксируем, какую систему будем строить. Уже знакомый Capstone становится конкретным решением с обоснованной границей автоматизации.
 
+### Вспомни прошлую неделю
+
+1. Чем trace помогает отличить ошибку модели от ошибки инструмента?
+2. Где измерения предыдущего Capstone workflow уже доступны?
+
 ## Сначала business framing
 
 Не всякая повторяющаяся задача требует агента. Например, команда вручную разбирает входящие issue: часть полей можно проверять обычными правилами, часть контекста приходится искать в репозитории, а решение о записи или изменении кода остаётся за человеком. Сначала разберитесь в процессе, затем выбирайте механизм.
@@ -107,6 +112,67 @@ Human must approve / decide:
 
 `Baseline` — как процесс работает до автоматизации; `Target` — чего хотим добиться; `Measured` — что получилось по факту. Не подменяйте измеренный результат целевым.
 
+### Worked example: GitHub issue triage
+
+Рассмотрим типичный пример, который легко перевести в Capstone:
+
+```markdown
+# Business problem
+Команда получает десятки GitHub issues в день. Баги и др. задачи иногда теряются в ручной сортировке, а часть повторяющихся задач требует только чтения репозитория и проверки существующих тестов.
+
+# AS-IS
+Trigger: новый issue создаётся в GitHub.
+Steps:
+1. сотрудник читает issue;
+2. проверяет репозиторий и связанные тесты;
+3. решает, что делать: закрыть, перенаправить, ответить, или назначить фикс;
+4. после решения вручную пишет комментарий или обновляет метки.
+Human decision: кто именно определяет, что issue относится к bug, docs или feature request.
+
+# Pain points
+- время тратится на повторное чтение одного и того же issue;
+- часть задач легко классифицировать, но их всё равно проверяет человек;
+- без чётких критериев один и тот же issue интерпретируется по-разному;
+- риск пропустить regression или установить неверный тип issue выше, чем польза от ручного разбора.
+
+# Automation candidates
+A. Triage label assignment
+B. Read-only issue classification using repo context
+C. Draft fix proposal with validation hints
+
+Prioritization: B is the best fit because repository context matters, but the action should stay bounded and reviewable.
+
+# Selected candidate and TO-BE
+Selected candidate: read-only issue classification and acceptance criteria draft.
+TO-BE:
+1. issue arrives;
+2. workflow reads issue text and matching files;
+3. it classifies bug/refactor/docs/needs-more-info;
+4. it writes a structured summary and suggests acceptance criteria;
+5. human reviews and approves before any code change.
+
+# Solution choice
+LLM workflow is sufficient here: classification and evidence gathering are ambiguous, but the actual patch is still human-owned. A full autonomous agent would be too broad for this step.
+
+# Human boundary
+Agent can do:
+- read repository context;
+- propose likely cause and relevant files;
+- produce structured classification and notes.
+
+Human must approve:
+- any code change;
+- any write action or label mutation beyond safe read-only triage;
+- issue assignment that changes business priority.
+
+# Expected outcome and KPI
+Baseline: 12 minutes per issue, manual triage, frequent ambiguity.
+Target: 4 minutes per issue, 70% issues classified with human review only.
+Measured: after pilot, time reduced and classification coverage increased for low-risk issues.
+```
+
+Это именно worked example: одна проблема, один AS-IS, один выбранный candidate и понятная Human boundary. После такого примера студент может заполнить свой own `problem-definition.md` для Capstone.
+
 ### `problem-definition.md`
 
 Соберите решения выше в один компактный артефакт:
@@ -177,6 +243,12 @@ flowchart LR
 > **Итог Week 8:** система спроектирована, обоснована и имеет измеримые цели.
 
 В следующей неделе этот solution design станет production-like сервисом в рамках того же Capstone.
+
+### Проверь себя
+
+1. Как baseline помогает решить, стоит ли автоматизировать выбранный участок?
+2. Чем LLM workflow отличается от автономного agent в границах решений?
+3. Какое решение Week 8 определяет, что именно будет доставлено как сервис в Week 9?
 
 ---
 
