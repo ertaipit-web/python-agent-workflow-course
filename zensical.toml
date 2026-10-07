@@ -7,7 +7,19 @@ use_directory_urls = true
 extra_css = ["stylesheets/course.css"]
 nav = [
   "index.md",
-  "course/index.md",
+  { "Курс" = [
+    "course/index.md",
+    { "Week 1 — Mental model" = "course/week-1.md" },
+    { "Week 2 — Workflow и handoff" = "course/week-2.md" },
+    { "Week 3 — Context engineering" = "course/week-3.md" },
+    { "Week 4 — ModelClient" = "course/week-4.md" },
+    { "Week 5 — Runtime и policy" = "course/week-5.md" },
+    { "Week 6 — Tools и permissions" = "course/week-6.md" },
+    { "Week 7 — Evaluation и trace" = "course/week-7.md" },
+    { "Week 8 — Business Automation & Solution Design" = "course/week-8.md" },
+    { "Week 9 — Productionize the Capstone" = "course/week-9.md" },
+    "course/capstone-evolution.md",
+  ] },
   "autonomous-agents.md",
   "lab-repository.md",
   "repo-triage.md",

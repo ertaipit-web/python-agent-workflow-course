@@ -16,7 +16,7 @@
 ---
 
 !!! note "Что меняем в Capstone"
-    **Week 1.** Создаём единый Capstone: `problem-definition.md`, baseline workflow и набор issue. Это первая версия системы, которую будем развивать еженедельно до Week 8.
+    **Week 1.** Создаём единый Capstone: `problem-definition.md`, baseline workflow и набор issue. Это первая версия системы, которую будем развивать еженедельно до Week 9.
 
 ## Материал
 

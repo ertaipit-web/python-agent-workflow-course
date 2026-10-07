@@ -69,6 +69,7 @@ week-5.md
 week-6.md
 week-7.md
 week-8.md
+week-9.md
 ```
 
 Не возвращай структуру к старому монолитному `docs/course.md`.

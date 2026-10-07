@@ -1,10 +1,10 @@
 # Учебные репозитории курса
 
-В курсе есть **один сквозной Capstone** и **несколько специализированных Labs**. Capstone развивается от Week 1 до Week 8 — каждая неделя меняет, а не заменяет проект. Labs работают как отдельные skill labs: учат механику изолированно, после чего студент переносит понимание в Capstone.
+В курсе есть **один сквозной Capstone** и **несколько специализированных Labs**. Capstone развивается от Week 1 до Week 9 — каждая неделя меняет, а не заменяет проект. Week 8 фиксирует automation opportunity и solution design, Week 9 переносит выбранное решение в production-like сервис. Labs работают как отдельные skill labs: учат механику изолированно, после чего студент переносит понимание в Capstone.
 
 | Проект | Роль в курсе |
 |---|---|
-| **Capstone** | Главный развивающийся проект: от baseline (Week 1) до production-like сервиса (Week 8) |
+| **Capstone** | Главный развивающийся проект: от baseline (Week 1) до production-like сервиса (Week 9) |
 | **Taskboard** (`labs/starter-repo/`) | Guided starter lab: handoff contract, baseline test |
 | **Repo Triage** (`labs/repo-triage/`) | Repository/context skill lab: evidence, `path:line` |
 | **RAG Lab** (`labs/rag-lab/`) | Retrieval skill lab: JIT context, grounded answers |
@@ -16,7 +16,7 @@
 Taskboard → learn handoff         → Capstone Week 1-2
 Repo Triage → learn evidence      → Capstone Week 3
 RAG Lab → learn retrieval         → Capstone Week 3 (extension)
-Integration Lab → learn tools     → Capstone Week 6 → 8
+Integration Lab → learn tools     → Capstone Week 6 → 9
 ```
 
 В репозитории курса есть четыре самостоятельных Python-проекта с собственными зависимостями и тестами. Порядок в таблице — рекомендуемий: каждая следующая лаборатория опирается на предыдущую, но брать можно и любую одну.

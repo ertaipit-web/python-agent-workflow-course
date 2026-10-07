@@ -49,7 +49,7 @@ Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) прове
 
 - `zensical.toml` — настройки проекта.
 - `docs/index.md` — главная страница и карта курса.
-- `docs/course/` — основной 8-недельный практикум с обязательным ядром и необязательными расширениями.
+- `docs/course/` — основной 9-недельный практикум с обязательным ядром и необязательными расширениями; Week 8 посвящена solution design, Week 9 — productionization Capstone.
 - `docs/autonomous-agents.md` — каталог из 6 модулей по автономным агентам; выбирайте 2–3 по своему use case.
 - `docs/ollama-vscode.md` — команды подключения Ollama к VS Code Chat и Kilo, диагностика по симптомам.
 - `docs/local-models.md` — выбор локальной модели под объём RAM и фиксация результатов локального прогона.

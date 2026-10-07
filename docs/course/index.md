@@ -2,7 +2,7 @@
 
 **Уровень:** для разработчика с практическим Python, Git и pytest. Опыт с Ollama, LangGraph, MCP и агентными фреймворками не требуется — они появляются в контексте инженерных задач.
 
-**Ритм:** 8 недель, ориентир 3–5 часов в неделю на обязательное ядро.
+**Ритм:** 9 недель, ориентир 24–40 часов на обязательное ядро суммарно; заключительный Capstone распределён между solution design и productionization.
 
 **Основной результат:** минимальный проверяемый Python-workflow для безопасного решения задачи в кодовой базе.
 
@@ -37,9 +37,9 @@
 
 ---
 
-## 8 недель
+## 9 недель
 
-Студент не начинает новый проект в Week 8. Один и тот же **Capstone** развивается от Week 1 до Week 8 — от baseline до production-like сервиса. Подробнее в [архиве эволюции Capstone](capstone-evolution/).
+Студент не начинает новый проект в конце курса. Один и тот же **Capstone** развивается от Week 1 до Week 9: Week 8 определяет automation opportunity и solution design, Week 9 превращает это решение в production-like сервис. Подробнее в [эволюции Capstone](capstone-evolution/).
 
 <div class="week-brief">
 <dl>
@@ -58,7 +58,9 @@
 <dt>Week 7</dt>
 <dd>Evaluate Capstone: ground truth, trace, метрики, регрессии</dd>
 <dt>Week 8</dt>
-<dd>Productionize Capstone: FastAPI, PostgreSQL, Docker, KPI</dd>
+<dd>Business Automation &amp; Solution Design: процесс, кандидаты автоматизации, human boundary, KPI-цели</dd>
+<dt>Week 9</dt>
+<dd>Productionize the Capstone: FastAPI, PostgreSQL, Docker, observability, CI</dd>
 </dl>
 </div>
 
@@ -71,16 +73,17 @@ flowchart TD
   W4 --> W5["Week 5\n+ runtime / policy"]
   W5 --> W6["Week 6\n+ tools / permissions"]
   W6 --> W7["Week 7\n+ eval / trace"]
-  W7 --> W8["Week 8\nproduction / KPI"]
+  W7 --> W8["Week 8\nbusiness automation\n+ solution design"]
+  W8 --> W9["Week 9\nproductionize\n+ delivery"]
   classDef week fill:#f5faf9,stroke:#0d9488,stroke-width:2px;
-  class W1,W2,W3,W4,W5,W6,W7,W8 week;
+  class W1,W2,W3,W4,W5,W6,W7,W8,W9 week;
 ```
 
 ---
 
 ## Обязательное ядро vs Расширения
 
-В курсе встречаются метки **Обязательное ядро** и **Расширение**. Выполнение расширений не требуется для зачёта основного курса — они для углубления. Каждая строка ниже — это **Capstone evolution**: студент развивает одну и ту же систему от Week 1 до Week 8, а не начинает новый проект.
+В курсе встречаются метки **Обязательное ядро** и **Расширение**. Выполнение расширений не требуется для зачёта основного курса — они для углубления. Каждая строка ниже — это **Capstone evolution**: студент развивает одну и ту же систему от Week 1 до Week 9, а не начинает новый проект.
 
 | Неделя | Capstone evolution | Обязательное ядро | Расширение |
 |---|---|---|---|
@@ -91,7 +94,8 @@ flowchart TD
 | 5 | Runtime + Policy | Workflow с конечным бюджетом на mock | model routing, сравнение провайдеров |
 | 6 | Tools + Permissions | проверки allowlist, approval, denied-сценарии | сравнение с Kilo/Kodacode, Integration Lab |
 | 7 | Evaluate Capstone | trace двух запусков, отчёт baseline vs workflow | retrieval eval, LLM-as-judge |
-| 8 | Productionize Capstone | FastAPI + PostgreSQL + Docker + KPI report | LangGraph, checkpoint/resume, 10+ golden cases |
+| 8 | Business Automation & Solution Design | process analysis, automation candidate, architecture, human boundary, measurable goals | сравнение нескольких automation candidates |
+| 9 | Productionize the Capstone | FastAPI + PostgreSQL + Docker + observability + CI + measured KPI report | LangGraph, checkpoint/resume, 10+ golden cases |
 
 ---
 

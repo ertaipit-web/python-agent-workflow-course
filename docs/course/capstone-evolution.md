@@ -1,6 +1,6 @@
 # Capstone: эволюция системы
 
-Этот документ — spine курса. Вместо восьми оторванных задач вы развиваете **одну и ту же систему** от Week 1 до Week 8: agent, который безопасно решает issue в Python-репозитории. Каждая неделя меняет архитектуру, а не заменяет проект.
+Этот документ — spine курса. Вместо девяти оторванных задач вы развиваете **одну и ту же систему** от Week 1 до Week 9: agent, который безопасно решает issue в Python-репозитории. Каждая неделя меняет решение, а не заменяет Capstone.
 
 > **Skill Lab ≠ Capstone.** Специализированные лаборатории (Taskboard, Repo Triage, RAG Lab, Integration Lab) учит механику изолированно. Capstone показывает, зачем эта механика нужна в реальной системе.
 
@@ -17,9 +17,10 @@ flowchart TD
   W4 --> W5["Week 5\n+ Runtime\n+ RunPolicy\n+ HumanGate"]
   W5 --> W6["Week 6\n+ Tools\n+ Policy\n+ Approval\n+ external integration"]
   W6 --> W7["Week 7\n+ Eval\n+ Trace"]
-  W7 --> W8["Week 8\nFastAPI service\n+ PostgreSQL\n+ Docker\n+ KPI"]
+        W7 --> W8["Week 8\nBusiness automation\n+ solution design"]
+        W8 --> W9["Week 9\nFastAPI service\n+ PostgreSQL\n+ Docker\n+ delivery"]
   classDef week fill:#f5faf9,stroke:#0d9488,stroke-width:2px;
-  class W1,W2,W3,W4,W5,W6,W7,W8 week;
+        class W1,W2,W3,W4,W5,W6,W7,W8,W9 week;
 ```
 
 ---
@@ -35,7 +36,8 @@ flowchart TD
 | 5 | runtime + policy | `Workflow`, `RunPolicy`, `HumanGate`, budget |
 | 6 | tools + external integration | Tool registry, allowlist, approval gate, external API |
 | 7 | evaluation + tracing | Eval report baseline vs workflow, trace of 2 runs |
-| 8 | production service | FastAPI, PostgreSQL, Docker, KPI report |
+| 8 | business automation + solution design | AS-IS / TO-BE, automation candidate, architecture choice, human boundary, measurable goals |
+| 9 | production service | FastAPI, PostgreSQL, Docker, observability, CI, KPI report |
 
 ---
 
@@ -96,7 +98,7 @@ Week 3: agent receives issue
 
 **Result:** student runs workflow с конечным бюджетом на mock; invalid schema → `blocked`, unsafe action → `needs_approval`.
 
-В Production Layer `needs_approval` — non-terminal persisted snapshot остановленного execution на HumanGate с `completed_at = null`. Сервис не предоставляет resume endpoint, поэтому это не полноценное возобновляемое состояние очереди.
+В Week 9 Production Layer `needs_approval` — non-terminal persisted snapshot остановленного execution на HumanGate с `completed_at = null`. Сервис не предоставляет resume endpoint, поэтому это не полноценное возобновляемое состояние очереди.
 
 ---
 
@@ -126,13 +128,25 @@ Week 3: agent receives issue
 
 ## Week 7 → Week 8
 
-**Problem:** система работает в эксперименте, но не доставляет бизнес-ценность — нет API, persistence, deployment.
+**Problem:** качество workflow уже можно измерить, но неясно, какая часть процесса действительно заслуживает автоматизации и какой результат считать ценным.
 
-**Change:** упаковываем существующий workflow в production-like сервис: FastAPI, PostgreSQL persistent state, async execution, Docker, observability, KPI.
+**Change:** описываем AS-IS, находим pain points, сравниваем automation candidates, выбираем один участок и фиксируем TO-BE, уровень автономности, human boundary и KPI-цели.
 
-**Reason:** Capstone продолжение, а не новый проект. Всё, что было построено в Week 1–7, переходит в сервис.
+**Reason:** сначала выбираем, что именно автоматизировать и почему выбранный механизм подходит; более сложная архитектура не является целью сама по себе.
 
-**Result:** студент запускает сервис через `docker compose up`, собирает метрики из результата, а затем вручную заполняет KPI report — `time saved`, `success rate`, `automation rate` и качество/затраты не генерируются автоматически из Compose.
+**Result:** solution design Capstone обоснован и имеет измеримые цели; допустимый результат анализа — отказаться от агента, если надёжнее обычный код или workflow.
+
+---
+
+## Week 8 → Week 9
+
+**Problem:** обоснованное решение пока остаётся workflow, который сложно вызвать извне, пережить между запросами и наблюдать как сервис.
+
+**Change:** productionize тот же Capstone: FastAPI, PostgreSQL persistent state, external integration, async execution, secrets/config, Docker, observability, error handling и CI.
+
+**Reason:** поставка не должна менять выбранную в Week 8 границу автоматизации и архитектуру; она делает решение доступным и проверяемым как production-like сервис.
+
+**Result:** студент запускает сервис через `docker compose up`, проверяет его поведение и вручную сопоставляет измеренный outcome с KPI-целями Week 8. Отчёт `time saved`, `success rate`, `automation rate`, quality и cost не генерируются автоматически из Compose.
 
 ---
 
@@ -143,4 +157,4 @@ Week 3: agent receives issue
 | Taskboard | handoff contract, baseline test | Week 1-2 |
 | Repo Triage | repository evidence, `path:line` | Week 3 |
 | RAG Lab | JIT context, retrieval as tool | Week 3 (extension) |
-| Integration Lab | Tool → Policy → Approval → Trace, external API | Week 6 → 8 |
+| Integration Lab | Tool → Policy → Approval → Trace, external API | Week 6 → 9 |

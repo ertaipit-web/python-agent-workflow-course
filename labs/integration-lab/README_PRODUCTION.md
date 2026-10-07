@@ -1,6 +1,6 @@
 # Agent Course Capstone - Production Service
 
-Production-oriented educational service для Week 8 Capstone: FastAPI сервис, оборачивающий существующий `AgentRuntime` в HTTP API с персистентным состоянием, асинхронным выполнением, Docker и observability.
+Production-oriented educational service для Week 9 Capstone: FastAPI сервис, оборачивающий существующий `AgentRuntime` в HTTP API с персистентным состоянием, асинхронным выполнением, Docker и observability.
 
 **Это не production-ready система** — учебный production-like сервис для демонстрации принципов. Нет HA, масштабирования, production secrets management.
 
@@ -224,7 +224,7 @@ GitHub Actions workflow: `.github/workflows/capstone-ci.yml`
 | Week 5 | Runtime / Policy / HumanGate | `AgentRuntime`, `Policy` и `HumanGate`. Finite run budget изучается в учебном runtime Week 5, но не подключён к deterministic Production Layer. |
 | Week 6 | Tools / Permissions | Tool registry, Policy (allowlist), Permission (scope), Approval |
 | Week 7 | Evaluation / Trace | Trace события, метрики (quality, cost, latency, human intervention) |
-| Week 8 | Production / KPI | FastAPI, PostgreSQL, Docker, observability, KPI report
+| Week 9 | Production / KPI | FastAPI, PostgreSQL, Docker, observability, KPI report
 
 ## Режимы работы
 
