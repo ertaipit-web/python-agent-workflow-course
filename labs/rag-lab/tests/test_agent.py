@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from rag_lab.agent import (
     ANSWERED,
     INSUFFICIENT_CONTEXT,

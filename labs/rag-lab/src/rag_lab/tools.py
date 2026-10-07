@@ -131,9 +131,13 @@ class RetrievalTools:
         return self._read_chunk(spec.name, validated)
 
     def _search(self, name: str, validated: Mapping[str, object]) -> ToolResult:
+        query = validated["query"]
+        limit = validated.get("limit", self._top_k)
+        if not isinstance(query, str) or not isinstance(limit, int):
+            raise ToolError(f"{name}: validated arguments have invalid types")
         hits = self._store.search(
-            str(validated["query"]),
-            limit=int(validated.get("limit", self._top_k)),
+            query,
+            limit=limit,
             min_score=self._min_score,
         )
         serialized = [
@@ -148,13 +152,16 @@ class RetrievalTools:
         ]
         return ToolResult(
             name=name,
-            payload={"tool": name, "query": validated["query"], "hits": serialized},
+            payload={"tool": name, "query": query, "hits": serialized},
             returned_characters=sum(len(hit["snippet"]) for hit in serialized),
             hits=hits,
         )
 
     def _read_chunk(self, name: str, validated: Mapping[str, object]) -> ToolResult:
-        chunk = self._store.chunk(str(validated["chunk_id"]))
+        chunk_id = validated["chunk_id"]
+        if not isinstance(chunk_id, str):
+            raise ToolError(f"{name}: validated chunk_id has an invalid type")
+        chunk = self._store.chunk(chunk_id)
         return ToolResult(
             name=name,
             payload={

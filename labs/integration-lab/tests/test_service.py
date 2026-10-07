@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import uuid
+from typing import Any
 
 import pytest
 from fastapi import HTTPException
@@ -14,15 +15,21 @@ from integration_lab.database import create_task, get_task, init_db
 from integration_lab.service import app
 
 
-async def _wait_for_task(ac, task_id: str, timeout: float = 10.0, poll_interval: float = 0.1) -> dict:
+async def _wait_for_task(
+    ac: AsyncClient,
+    task_id: str,
+    timeout: float = 10.0,
+    poll_interval: float = 0.1,
+) -> dict[str, Any]:
     """Poll GET /tasks/{task_id} until status != 'queued' or timeout expires."""
     import asyncio
 
     deadline = time.monotonic() + timeout
+    data: dict[str, Any] = {}
     while time.monotonic() < deadline:
         response = await ac.get(f"/tasks/{task_id}")
         data = response.json()
-        if data["status"] != "queued":
+        if data["status"] not in {"queued", "running"}:
             return data
         await asyncio.sleep(poll_interval)
     return data
@@ -147,17 +154,21 @@ async def test_task_status_updates(db_session: AsyncSession):
 
     task = await create_task(db_session, {"task": "Test"})
     await db_session.commit()
+    assert task.completed_at is None
 
     updated = await update_task_status(db_session, task.id, "running")
     await db_session.commit()
+    assert updated is not None
     assert updated.status == "running"
     assert updated.started_at is not None
+    assert updated.completed_at is None
 
     updated = await update_task_status(
         db_session, task.id, "completed",
         result={"status": "ok", "data": "result"}
     )
     await db_session.commit()
+    assert updated is not None
     assert updated.status == "completed"
     assert updated.completed_at is not None
     assert updated.result == {"status": "ok", "data": "result"}
@@ -166,8 +177,10 @@ async def test_task_status_updates(db_session: AsyncSession):
     await db_session.commit()
     updated = await update_task_status(db_session, task2.id, "failed", error="Something went wrong")
     await db_session.commit()
+    assert updated is not None
     assert updated.status == "failed"
     assert updated.error == "Something went wrong"
+    assert updated.completed_at is not None
 
 
 @pytest.mark.asyncio
@@ -183,6 +196,7 @@ async def test_database_models_have_correct_schema(db_session: AsyncSession):
     assert execution.run_id == "run-test-1"
     assert execution.status == "running"
     assert execution.trace == []
+    assert execution.completed_at is None
 
     updated = await update_execution(
         db_session, execution.id,
@@ -190,6 +204,7 @@ async def test_database_models_have_correct_schema(db_session: AsyncSession):
         trace=[{"tool": "test", "status": "ok"}]
     )
     await db_session.commit()
+    assert updated is not None
     assert updated.status == "completed"
     assert updated.trace == [{"tool": "test", "status": "ok"}]
     assert updated.completed_at is not None
@@ -351,6 +366,34 @@ async def test_demo_toolcall_success(mock_github_api, monkeypatch, db_engine):
 
 
 @pytest.mark.asyncio
+async def test_service_serializes_list_valued_read_results(mock_github_api, monkeypatch, db_engine):
+    from integration_lab import service
+    from integration_lab.runtime import ScriptedPlanner, ToolCall
+
+    async with _make_demo_client(mock_github_api, monkeypatch, db_engine) as ac:
+        runtime = service.get_runtime()
+        runtime.planner = ScriptedPlanner(
+            [
+                ToolCall(
+                    tool="list_issues",
+                    arguments={"owner": "course", "repository": "taskboard"},
+                )
+            ]
+        )
+        monkeypatch.setattr(service, "get_runtime", lambda: runtime)
+
+        create_response = await ac.post("/tasks", json={"task": "List demo issues"})
+        assert create_response.status_code == 202
+        data = await _wait_for_task(ac, create_response.json()["task_id"])
+
+        assert data["status"] == "completed"
+        assert data["completed_at"] is not None
+        assert data["execution_id"] is not None
+        assert data["result"]["results"] == [[]]
+        assert data["result"]["trace"][0]["tool_name"] == "list_issues"
+
+
+@pytest.mark.asyncio
 async def test_demo_toolcall_denied_by_policy(mock_github_api, monkeypatch, db_engine):
     """Policy deny: repository not in allowlist → blocked, handler not called, API not called."""
     from integration_lab import service
@@ -376,10 +419,28 @@ async def test_demo_toolcall_denied_by_policy(mock_github_api, monkeypatch, db_e
         assert data["status"] == "blocked", (
             f"Expected 'blocked' for repository not in allowlist, got '{data['status']}'"
         )
+        assert data["completed_at"] is not None
+        assert data["execution_id"] is not None
         assert data["error"] is not None
         assert "repository is not allowlisted" in data["error"]
         # No issue should have been created — handler was never invoked
         assert len(mock_github_api.store.list_issues("evil", "evil-repo", state=None)) == 0
+
+        from sqlalchemy import select
+
+        from integration_lab.database import Execution
+        from integration_lab.service import get_async_session_maker
+
+        session_maker = await get_async_session_maker()
+        async with session_maker() as session:
+            execution_result = await session.execute(
+                select(Execution).where(Execution.task_id == uuid.UUID(task_id))
+            )
+            execution = execution_result.scalars().one()
+            assert execution.status == "blocked"
+            assert execution.run_id == data["execution_id"]
+            assert execution.completed_at is not None
+            assert execution.trace[-1]["transition_reason"] == "repository_not_allowed"
 
 
 @pytest.mark.asyncio
@@ -398,6 +459,58 @@ async def test_demo_toolcall_approval_rejected(mock_github_api, monkeypatch, db_
         assert data["error"] == "create_issue: human approval was rejected"
         # No issue should have been created
         assert len(mock_github_api.store.list_issues("course", "taskboard", state=None)) == 0
+
+
+@pytest.mark.asyncio
+async def test_service_persists_needs_approval_snapshot_without_resume(
+    mock_github_api, monkeypatch, db_engine
+):
+    from integration_lab import service
+    from integration_lab.runtime import Policy
+    from integration_lab.tools import READ_ONLY_SCOPES, WRITE_SCOPES
+
+    async with _make_demo_client(mock_github_api, monkeypatch, db_engine) as ac:
+        runtime = service.get_runtime()
+        runtime.policy = Policy(
+            granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
+            allowed_repositories=frozenset({("course", "taskboard")}),
+            approver=None,
+        )
+        monkeypatch.setattr(service, "get_runtime", lambda: runtime)
+
+        create_response = await ac.post("/tasks", json={"task": "Create a demo issue"})
+        assert create_response.status_code == 202
+        task_id = create_response.json()["task_id"]
+
+        data = await _wait_for_task(ac, task_id)
+        assert data["status"] == "needs_approval"
+        assert data["started_at"] is not None
+        assert data["completed_at"] is None
+        assert data["execution_id"] is not None
+        assert data["result"]["status"] == "needs_approval"
+        assert data["result"]["pending_approval"]["tool"] == "create_issue"
+        assert data["result"]["trace"][-1]["transition_reason"] == "needs_approval"
+        assert mock_github_api.store.count() == 0
+
+        from integration_lab.service import get_async_session_maker
+
+        session_maker = await get_async_session_maker()
+        async with session_maker() as session:
+            from sqlalchemy import select
+
+            from integration_lab.database import Execution, get_task
+
+            task = await get_task(session, uuid.UUID(task_id))
+            assert task is not None
+            assert task.completed_at is None
+            execution_result = await session.execute(
+                select(Execution).where(Execution.task_id == uuid.UUID(task_id))
+            )
+            execution = execution_result.scalars().one()
+            assert execution.status == "needs_approval"
+            assert execution.run_id == data["execution_id"]
+            assert execution.completed_at is None
+            assert execution.trace[-1]["transition_reason"] == "needs_approval"
 
 
 @pytest.mark.asyncio
@@ -470,6 +583,7 @@ async def test_needs_approval_does_not_set_completed_at(client, db_session):
 
     updated = await update_task_status(db_session, task.id, "needs_approval")
     await db_session.commit()
+    assert updated is not None
     assert updated.status == "needs_approval"
     assert updated.completed_at is None, (
         "needs_approval must NOT set completed_at — it is not a terminal state"
@@ -541,6 +655,7 @@ async def test_blocked_status_contract(client):
 
         updated = await update_task_status(session, task.id, "blocked")
         await session.commit()
+        assert updated is not None
         assert updated.status == "blocked"
         assert updated.completed_at is not None, "blocked is terminal and must set completed_at"
 
@@ -560,6 +675,29 @@ async def test_execution_blocked_has_completed_at(client, db_session):
     assert updated is not None
     assert updated.status == "blocked"
     assert updated.completed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_execution_failed_has_completed_at(client, db_session):
+    from integration_lab.database import create_execution, create_task, update_execution
+
+    task = await create_task(db_session, {"task": "Failed execution"})
+    await db_session.commit()
+    execution = await create_execution(db_session, task.id, "run-failed")
+    await db_session.commit()
+
+    updated = await update_execution(
+        db_session,
+        execution.id,
+        status="failed",
+        trace=[{"status": "failed", "transition_reason": "tool_failed"}],
+    )
+    await db_session.commit()
+
+    assert updated is not None
+    assert updated.status == "failed"
+    assert updated.completed_at is not None
+    assert updated.trace[-1]["transition_reason"] == "tool_failed"
 
 
 @pytest.mark.asyncio

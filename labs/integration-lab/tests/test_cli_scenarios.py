@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -11,7 +12,7 @@ from integration_lab.tools import READ_ONLY_SCOPES, WRITE_SCOPES
 
 
 @pytest.fixture
-def api(tmp_path: Path) -> IssueApi:
+def api(tmp_path: Path) -> Iterator[IssueApi]:
     instance = IssueApi(
         database=tmp_path / "cli.db",
         tokens=(
@@ -53,7 +54,7 @@ def test_write_scenario_without_an_approver_waits_for_a_human(api: IssueApi) -> 
     report = create_report(api.base_url, scenario="write-denied")
 
     assert f"- Status: `{NEEDS_APPROVAL}`" in report
-    assert "Waiting for approval: `create_issue`" in report
+    assert "Stopped at HumanGate; approval required: `create_issue`" in report
     assert api.store.count() == 1
 
 

@@ -22,7 +22,7 @@ PostgreSQL (Task Store)
     ▼
 Agent Runtime (Integration Lab)
     │
-    ├── ModelClient (Week 4)
+    ├── ScriptedPlanner (deterministic; ModelClient is not connected)
     ├── Tools + Policy (Week 5-6)
     └── GitHub API (External Integration)
 ```
@@ -43,7 +43,7 @@ cp .env.example .env
 Для demo/production режимов нужен **fine-grained Personal Access Token**:
 - один token → один repository → minimum permissions
 - Issues: read/write (read для list/get, write для create/close)
-- Contents: read/write **не требуется** — этот flow работает только через Issues
+- Contents: **не требуется** — этот flow работает только через Issues
 - Metadata: read (требуется GitHub API для валидации токена)
 - Избегайте classic PAT со scope `repo` — он даёт доступ ко всем репозиториям
 
@@ -127,10 +127,10 @@ python -m integration_lab.service
 | `running` | нет | `null` | Выполняется в background |
 | `completed` | да | установлен | Успешно завершена, `result` доступен |
 | `failed` | да | установлен | Ошибка выполнения, `error` доступен |
-| `needs_approval` | нет | `null` | Ожидает human approval side effect. Результат и trace доступны, но задача не считается завершённой. |
+| `needs_approval` | нет | `null` | Persisted snapshot выполнения, остановленного на HumanGate; это не success и не completed execution. |
 | `blocked` | да | установлен | Остановлена по правилам policy (insufficient scope, invalid arguments, tool not registered, repository not allowed). `error` содержит причину. |
 
-`blocked` и `failed` — terminal outcomes и фиксируют `completed_at`. `needs_approval` остается неterminal snapshot без `completed_at`, чтобы задача ожидала ручного подтверждения или отказа. Текущий сервис не имеет resume endpoint; этот статус можно интерпретировать как остановку на HumanGate.
+`blocked` и `failed` — terminal outcomes и фиксируют `completed_at`. `needs_approval` — non-terminal persisted snapshot остановленного execution на HumanGate с `completed_at = null`. Текущий сервис не предоставляет resume endpoint, поэтому это не полноценное возобновляемое состояние очереди, не success и не completed execution.
 
 ### `GET /health`
 Liveness probe.
@@ -160,7 +160,7 @@ Liveness probe.
 | `SERVICE_HOST` | Bind host | `0.0.0.0` |
 | `SERVICE_PORT` | Bind port | `8000` |
 | `LOG_LEVEL` | Log level | `INFO` |
-| `DEFAULT_MAX_RETRIES` | Max retries for GitHub API calls | `3` |
+| `DEFAULT_MAX_RETRIES` | Повторы после первоначального запроса (максимум попыток = значение + 1) | `3` |
 | `RUNNER_MODE` | `test` (пустой planner) или `demo` (create_issue ToolCall) | `test` |
 | `GITHUB_OWNER` | Owner для demo create_issue | `demo-owner` |
 | `GITHUB_REPO` | Repository для demo create_issue | `demo-repo` |

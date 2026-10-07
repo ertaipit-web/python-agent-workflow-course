@@ -4,10 +4,12 @@ import io
 import json
 import time
 from collections.abc import Iterator
+from email.message import Message
 from http.client import HTTPConnection
 from pathlib import Path
-from typing import Self
+from typing import Any, Self
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 import pytest
@@ -71,7 +73,7 @@ def raw_request(
     *,
     token: str | None = "read-write",
     body: dict[str, object] | None = None,
-) -> tuple[int, dict[str, object]]:
+) -> tuple[int, dict[str, Any]]:
     payload = json.dumps(body).encode("utf-8") if body is not None else None
     request = Request(f"{api.base_url}{path}", data=payload, method=method)
     if token is not None:
@@ -225,8 +227,10 @@ def test_service_rejects_an_out_of_range_issue_number(api: IssueApi) -> None:
 
 def _raw_request_with_content_length(
     api: IssueApi, content_length: str, path: str
-) -> tuple[int, dict[str, object]]:
-    connection = HTTPConnection(*api.base_url.removeprefix("http://").split(":"))
+) -> tuple[int, dict[str, Any]]:
+    parsed_url = urlsplit(api.base_url)
+    assert parsed_url.hostname is not None
+    connection = HTTPConnection(parsed_url.hostname, parsed_url.port)
     connection.putrequest("POST", path, skip_accept_encoding=True)
     connection.putheader("Authorization", "Bearer read-write")
     connection.putheader("Content-Length", content_length)
@@ -311,7 +315,7 @@ def test_idempotent_read_retries_429_and_eventually_succeeds(monkeypatch) -> Non
                 request.full_url,
                 429,
                 "rate limited",
-                {},
+                Message(),
                 io.BytesIO(b'{"error":{"code":"rate_limited","message":"try later"}}'),
             )
         return Response()
@@ -329,7 +333,7 @@ def test_idempotent_read_stops_after_429_retry_budget(monkeypatch) -> None:
             request.full_url,
             429,
             "rate limited",
-            {},
+            Message(),
             io.BytesIO(b'{"error":{"code":"rate_limited","message":"try later"}}'),
         )
 
@@ -352,7 +356,7 @@ def test_write_429_does_not_retry(monkeypatch) -> None:
             request.full_url,
             429,
             "rate limited",
-            {},
+            Message(),
             io.BytesIO(b'{"error":{"code":"rate_limited","message":"try later"}}'),
         )
 

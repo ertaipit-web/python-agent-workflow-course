@@ -228,7 +228,7 @@ async def execute_agent_task(
         if report.status == COMPLETED:
             result_data = {
                 "status": "completed",
-                "results": [dict(r) for r in report.results],
+                "results": list(report.results),
                 "trace": trace_events,
             }
             final_status = "completed"

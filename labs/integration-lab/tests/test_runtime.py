@@ -14,6 +14,7 @@ from integration_lab.runtime import (
     NEEDS_APPROVAL,
     AgentRuntime,
     Policy,
+    RunReport,
     ScriptedPlanner,
     ToolCall,
     redact,
@@ -54,7 +55,9 @@ def client(api: IssueApi) -> IssueApiClient:
     return IssueApiClient(api.base_url, "read-write", timeout=2.0)
 
 
-def run_with(client: IssueApiClient, policy: Policy, calls: list[ToolCall]):
+def run_with(
+    client: IssueApiClient, policy: Policy, calls: list[ToolCall]
+) -> tuple[AgentRuntime, RunReport]:
     runtime = AgentRuntime(
         client=client,
         policy=policy,
@@ -70,7 +73,9 @@ def test_read_tool_runs_with_only_a_read_scope(client: IssueApiClient) -> None:
     runtime, run = run_with(client, policy, [READ_CALL])
 
     assert run.status == COMPLETED
-    assert run.results[0][0]["title"] == "Filter ignores case"
+    first_result = run.results[0]
+    assert isinstance(first_result, list)
+    assert first_result[0]["title"] == "Filter ignores case"
     assert [event.transition_reason for event in run.trace] == ["tool_complete"]
     assert all(event.run_id == "test-run" for event in runtime.run("triage").trace)
 
@@ -91,6 +96,7 @@ def test_write_tool_needs_approval_and_stops_before_the_api(
     assert run.pending_approval.tool == "create_issue"
     assert run.trace[-1].status == "awaiting_approval"
     assert run.trace[-1].transition_reason == "needs_approval"
+    assert client.call_count == 1
     assert api.store.count() == 1
 
 
@@ -105,7 +111,9 @@ def test_approved_write_reaches_the_external_system(client: IssueApiClient, api:
 
     assert run.status == COMPLETED
     assert len(run.results) == 2
-    assert run.results[1]["number"] == 2
+    created_issue = run.results[1]
+    assert isinstance(created_issue, dict)
+    assert created_issue["number"] == 2
     assert api.store.count() == 2
 
 
@@ -123,6 +131,7 @@ def test_denied_approval_blocks_the_run_without_a_side_effect(
     assert run.status == BLOCKED
     assert run.reason == "create_issue: human approval was rejected"
     assert run.trace[-1].transition_reason == "approval_rejected"
+    assert client.call_count == 0
     assert api.store.count() == 1
 
 
@@ -138,6 +147,7 @@ def test_missing_write_scope_blocks_before_approval(client: IssueApiClient, api:
     assert run.status == BLOCKED
     assert run.reason == f"missing scope: {SCOPE_WRITE}"
     assert run.trace[-1].error_type == "insufficient_scope"
+    assert client.call_count == 0
     assert api.store.count() == 1
 
 
@@ -150,6 +160,7 @@ def test_repository_outside_the_allowlist_is_rejected(client: IssueApiClient) ->
     assert run.status == BLOCKED
     assert run.reason == "list_issues: repository is not allowlisted"
     assert run.trace[-1].transition_reason == "repository_not_allowed"
+    assert client.call_count == 0
 
 
 def test_wildcard_allowlist_is_rejected(client: IssueApiClient) -> None:
@@ -163,6 +174,7 @@ def test_wildcard_allowlist_is_rejected(client: IssueApiClient) -> None:
 
     assert run.status == BLOCKED
     assert run.reason == "list_issues: repository is not allowlisted"
+    assert client.call_count == 0
 
 
 def test_tool_outside_the_registry_is_rejected_by_name(client: IssueApiClient) -> None:
@@ -174,6 +186,7 @@ def test_tool_outside_the_registry_is_rejected_by_name(client: IssueApiClient) -
     assert run.status == BLOCKED
     assert run.reason == "delete_repository is not in the tool registry"
     assert "delete_repository" not in {spec.name for spec in runtime.tools()}
+    assert client.call_count == 0
 
 
 def test_invalid_arguments_are_rejected_before_execution(client: IssueApiClient) -> None:
@@ -185,6 +198,7 @@ def test_invalid_arguments_are_rejected_before_execution(client: IssueApiClient)
     assert run.status == BLOCKED
     assert run.trace[-1].error_type == "invalid_arguments"
     assert run.trace[-1].detail == "list_issues: unknown argument 'path'"
+    assert client.call_count == 0
 
 
 def test_external_failure_blocks_the_run_instead_of_reporting_success(
@@ -194,14 +208,18 @@ def test_external_failure_blocks_the_run_instead_of_reporting_success(
     api.start(port=0)
     policy = Policy(granted_scopes=READ_ONLY_SCOPES, allowed_repositories=ALLOWED)
 
-    _, blocked = run_with(IssueApiClient(api.base_url, "made-up-token", timeout=1.0), policy, [READ_CALL])
-    _, allowed = run_with(IssueApiClient(api.base_url, "read-write", timeout=1.0), policy, [READ_CALL])
+    blocked_client = IssueApiClient(api.base_url, "made-up-token", timeout=1.0)
+    allowed_client = IssueApiClient(api.base_url, "read-write", timeout=1.0)
+    _, blocked = run_with(blocked_client, policy, [READ_CALL])
+    _, allowed = run_with(allowed_client, policy, [READ_CALL])
 
     # An exposed tool whose call raised an IntegrationError is FAILED, not BLOCKED.
     # BLOCKED is reserved for policy/scope/allowlist rejections that never reach the tool.
     assert blocked.status == FAILED
     assert blocked.trace[-1].error_type == "AuthenticationError"
     assert blocked.trace[-1].transition_reason == "tool_failed"
+    assert blocked_client.call_count == 1
+    assert allowed_client.call_count == 1
     assert allowed.status == COMPLETED
 
 
@@ -218,8 +236,10 @@ def test_redaction_hides_secrets_and_truncates_long_values() -> None:
 
     assert redacted["token"] == "***"
     assert redacted["authorization"] == "***"
-    assert redacted["body"].endswith("...")
-    assert len(redacted["body"]) == 123
+    body = redacted["body"]
+    assert isinstance(body, str)
+    assert body.endswith("...")
+    assert len(body) == 123
     assert redacted["title"] == "short"
     assert redacted["number"] == 7
 

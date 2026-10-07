@@ -215,14 +215,14 @@ GET  /health          → liveness probe
 | `running` | Выполняется в background | `null` |
 | `completed` | Успешно завершено | установлено |
 | `failed` | Ошибка выполнения | установлено |
-| `needs_approval` | Ожидает подтверждения humans (side effect) | `null` (неterminal snapshot) |
+| `needs_approval` | Сохранённый non-terminal snapshot остановленного execution на HumanGate | `null` |
 | `blocked` | Ограничение policy (tool не зарегистрирован, repository не в allowlist, не хватает scope, invalid arguments) | установлено |
 
 `blocked` отличается от `failed`:
 - `failed` — системная ошибка (исключение, timeout, provider unavailable);
 - `blocked` — политика отклонила действие до исполнения, причина в `error`/`trace`.
 
-`blocked` и `failed` — terminal-статусы и фиксируют `completed_at`. `needs_approval` — неterminal snapshot без `completed_at`, потому что выполнение остановлено на HumanGate и ожидает подтверждения или отказа.
+`blocked` и `failed` — terminal-статусы и фиксируют `completed_at`. `needs_approval` — non-terminal persisted snapshot остановленного execution на HumanGate; `completed_at = null`. Текущий сервис не предоставляет resume endpoint, поэтому это не полноценное возобновляемое состояние очереди, не success и не completed execution.
 
 Цель: показать, как agent workflow становится сервисом, доступным другим системам.
 

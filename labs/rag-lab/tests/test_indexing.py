@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from rag_lab.chunking import chunk_markdown, ingest_directory, split_sections
 from rag_lab.embedding import HashingEmbedder, cosine_similarity
 from rag_lab.store import VectorStore, build_index, make_snippet

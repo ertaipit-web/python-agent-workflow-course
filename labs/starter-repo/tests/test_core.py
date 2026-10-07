@@ -1,5 +1,4 @@
 import pytest
-
 from taskboard import Task, create_task, filter_tasks, set_status
 
 

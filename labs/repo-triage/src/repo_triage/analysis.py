@@ -258,8 +258,10 @@ def create_report(repository: Path, issue_directory: Path) -> str:
         if issue.category == "ambiguous":
             lines.extend(
                 [
-                    "Do not infer scope or modify files. Ask the requester for measurable acceptance "
-                    "criteria and the affected behavior.",
+                    (
+                        "Do not infer scope or modify files. Ask the requester for measurable acceptance "
+                        "criteria and the affected behavior."
+                    ),
                     "",
                 ]
             )

@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from rag_lab.cli import create_report, main
 
 LAB = Path(__file__).resolve().parents[1]

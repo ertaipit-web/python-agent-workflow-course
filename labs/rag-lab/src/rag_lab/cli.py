@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 from rag_lab.agent import ANSWERED, AnswerRun, ExtractiveAnswerer
@@ -68,8 +69,10 @@ def create_report(
         f"- Embedder: `{store.embedder_name}`",
         f"- Retrieved chunks per question: {top_k}",
         "",
-        "The agent never receives the whole corpus: it calls the retrieval tool and only "
-        "loads the chunks it needs for the current question.",
+        (
+            "The agent never receives the whole corpus: it calls the retrieval tool and only "
+            "loads the chunks it needs for the current question."
+        ),
         "",
     ]
     lines.extend(_run_lines(report.runs, store.total_characters))
@@ -86,7 +89,7 @@ def _select(cases: tuple[EvaluationCase, ...], case_id: str | None) -> tuple[Eva
     return selected
 
 
-def _run_lines(runs: list[AnswerRun], corpus_characters: int) -> list[str]:
+def _run_lines(runs: Sequence[AnswerRun], corpus_characters: int) -> list[str]:
     lines = ["## Answers", ""]
     for run in runs:
         answer = run.answer
@@ -109,8 +112,10 @@ def _run_lines(runs: list[AnswerRun], corpus_characters: int) -> list[str]:
         if answer.status != ANSWERED:
             lines.extend(
                 [
-                    "The agent refuses to answer without retrieved evidence instead of "
-                    "inventing a plausible answer.",
+                    (
+                        "The agent refuses to answer without retrieved evidence instead of "
+                        "inventing a plausible answer."
+                    ),
                     "",
                 ]
             )

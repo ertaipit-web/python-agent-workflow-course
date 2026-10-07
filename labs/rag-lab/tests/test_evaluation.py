@@ -3,8 +3,13 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
-
-from rag_lab.agent import ANSWERED, INSUFFICIENT_CONTEXT, Answer, Claim, ExtractiveAnswerer
+from rag_lab.agent import (
+    ANSWERED,
+    INSUFFICIENT_CONTEXT,
+    Answer,
+    Claim,
+    ExtractiveAnswerer,
+)
 from rag_lab.chunking import Chunk
 from rag_lab.evaluation import CaseFormatError, EvaluationCase, evaluate, load_cases
 from rag_lab.store import build_index

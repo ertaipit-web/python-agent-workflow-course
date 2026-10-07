@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Protocol, cast
+from typing import Protocol
 
 from integration_lab.client import IssueApiClient
 from integration_lab.errors import IntegrationError
@@ -17,6 +17,7 @@ from integration_lab.tools import (
 
 COMPLETED = "completed"
 FAILED = "failed"
+# Persisted HumanGate snapshot; non-terminal, with no resume endpoint in the service.
 NEEDS_APPROVAL = "needs_approval"
 BLOCKED = "blocked"
 REDACTED_ARGUMENTS = frozenset({"token", "secret", "authorization", "password"})
@@ -50,7 +51,7 @@ class TraceEvent:
 class RunReport:
     task: str
     status: str
-    results: tuple[Mapping[str, object], ...]
+    results: tuple[object, ...]
     pending_approval: ToolCall | None
     reason: str | None
     trace: tuple[TraceEvent, ...]
@@ -61,7 +62,7 @@ class RunReport:
             rows.append(f"- Reason: {self.reason}")
         if self.pending_approval is not None:
             rows.append(
-                f"- Waiting for approval: `{self.pending_approval.tool}` with "
+                f"- Stopped at HumanGate; approval required: `{self.pending_approval.tool}` with "
                 f"{redact(self.pending_approval.arguments)}"
             )
         rows.append("")
@@ -121,7 +122,7 @@ class AgentRuntime:
 
     def run(self, task: str) -> RunReport:
         trace: list[TraceEvent] = []
-        results: list[Mapping[str, object]] = []
+        results: list[object] = []
         status = COMPLETED
         reason: str | None = None
         pending: ToolCall | None = None
@@ -170,7 +171,7 @@ class AgentRuntime:
                 break
 
             try:
-                results.append(cast(dict[str, Any], tool.handler(arguments)))
+                results.append(tool.handler(arguments))
             except IntegrationError as error:
                 # Tool execution failure is the agent's working outcome, not a
                 # policy violation. Policy/scope/allowlist rejections are BLOCKED;

@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pytest
-
 from rag_lab.store import build_index
 from rag_lab.tools import (
     READ_CHUNK_TOOL,
@@ -60,7 +59,10 @@ def test_search_tool_returns_references_and_snippets_only(tools: RetrievalTools)
     assert len(result.hits) == 2
     assert result.chunks == ()
     assert set(result.payload) == {"tool", "query", "hits"}
-    for hit in result.payload["hits"]:
+    hits = result.payload["hits"]
+    assert isinstance(hits, list)
+    for hit in hits:
+        assert isinstance(hit, dict)
         assert set(hit) == {"chunk_id", "source", "section", "score", "snippet"}
         assert "text" not in hit
 

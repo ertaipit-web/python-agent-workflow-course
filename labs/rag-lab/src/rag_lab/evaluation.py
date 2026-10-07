@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from rag_lab.agent import ANSWERED, Answer, AnswerRun, Answerer, run_question
+from rag_lab.agent import ANSWERED, Answer, Answerer, AnswerRun, run_question
 from rag_lab.chunking import Chunk
 from rag_lab.text import terms
 from rag_lab.tools import RetrievalTools
@@ -111,8 +111,10 @@ class EvaluationReport:
                 f"Grounded answer rate: {self.grounded_answer_rate:.2f}.",
                 f"Unsupported answer rate: {self.unsupported_answer_rate:.2f}.",
                 "",
-                "Retrieval relevance and grounding are lexical measurements of this offline "
-                "index. They are not proof that an answer is correct.",
+                (
+                    "Retrieval relevance and grounding are lexical measurements of this offline "
+                    "index. They are not proof that an answer is correct."
+                ),
                 "",
             ]
         )
