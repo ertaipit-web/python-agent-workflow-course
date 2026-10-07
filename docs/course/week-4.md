@@ -13,6 +13,8 @@
 </dl>
 </div>
 
+> 🧭 **Где мы:** **[LLM / ModelClient]** → Context / State → Tools → Runtime / Orchestration → Policy / Permissions → Evaluation / Observability.
+
 ---
 
 !!! note "Что меняем в Capstone"
@@ -131,6 +133,9 @@ def validate_structured_output(raw: dict, schema: type[BaseModel]) -> BaseModel:
 **Failure example:** модель вернула `{"issue_type": "feature"}` — не в enum. Validation выбрасывает `ValidationError`. Retry logic ловит его, делает повторную попытку с error context. Только после исчерпания retry — поднимается `ProviderError`, workflow решает: `needs_input` / `blocked`.
 
 ---
+
+!!! question "🤔 Predict"
+    Модель предложила `write_file` с аргументом, который не проходит schema validation. Должен ли runtime вызвать инструмент, чтобы посмотреть, что произойдёт, или остановить вызов до исполнения?
 
 ### Tool calling: lifecycle
 
@@ -271,11 +276,11 @@ def test_workflow_handles_invalid_output():
 3. Проверить failure case: передать намеренно невалидный schema, убедиться, что validation ловит ошибку.
 4. Заменить реальный provider на `MockModelClient` и прогнать существующий workflow тест.
 
-**Расширение:** сравнить два провайдера (cloud + local) на одном наборе задач; зафиксировать latency, cost, quality.
+**Расширение:** сравнить двух провайдеров на одном наборе задач и зафиксировать latency, cost и quality. Provider-specific настройки и подробное сравнение privacy тоже необязательны для зачёта Core.
 {: .course-note .course-note--extension }
 
-**Extension / Experiment:** provider-specific параметры, подробное сравнение privacy и локального/облачного запуска не нужны для зачёта Core.
-{: .course-note .course-note--extension }
+!!! success "🎉 What you can do now"
+    Вы можете заменить модельный provider, не меняя workflow, и не допустить исполнения непроверенного tool proposal.
 
 ---
 
@@ -298,6 +303,15 @@ def test_workflow_handles_invalid_output():
 1. Какую зависимость `ModelClient` прячет от workflow?
 2. Чем tool proposal отличается от tool execution?
 3. Какой вызов Capstone теперь можно подменить mock provider?
+
+## ✅ Definition of Done
+
+- Объяснить, какие детали provider SDK изолирует `ModelClient`.
+- Проверить structured output и провести предложенный tool call через validation до исполнения.
+- Использовать mock provider для воспроизводимого теста и проверить невалидный ответ.
+- Обработать timeout или исчерпание retry так, чтобы сбой не выдавался за успешный результат.
+
+> → **Дальше:** теперь вызов модели изолирован и проверяем; в Week 5 построим runtime, который управляет состоянием, переходами, бюджетом и остановкой workflow.
 
 ---
 

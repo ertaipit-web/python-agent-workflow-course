@@ -13,6 +13,8 @@
 </dl>
 </div>
 
+> 🧭 **Где мы:** LLM → Context / State → Tools → **[Runtime / Orchestration]** → Policy / Permissions → Evaluation / Observability.
+
 ---
 
 !!! note "Продолжаем тот же Capstone"
@@ -139,6 +141,9 @@ Checkpoint хранит, какой узел завершён, какие арт
 ---
 
 ### Этап 3 — Реальная внешняя интеграция
+
+!!! question "🤔 Predict"
+  Внешний API получил запрос на запись, но соединение оборвалось до ответа. Можно ли безопасно повторить такой запрос автоматически, если неизвестно, применилось ли первое действие?
 
 Используем существующий `IssueApiClient` (GitHub API) из Integration Lab. Уже реализовано:
 - Authentication (Bearer token)
@@ -543,6 +548,9 @@ Jitter предотвращает синхронные повторы при rat
 
 Не включайте реальный GitHub token для smoke test и не выполняйте demo-запись в реальном репозитории без явного разрешения.
 
+!!! success "🎉 What you can do now"
+    Вы можете предоставить существующий workflow как наблюдаемый сервис, сохранив policy и human approval на внешних действиях.
+
 ---
 
 ## Результат недели {: .course-section .course-section--result }
@@ -599,6 +607,14 @@ Capstone — не новый проект, а **production-ization** уже сп
 - наблюдать за execution через structured logs и traces;
 - настроить единый CI pipeline;
 - измерить бизнес-эффект через KPI report.
+
+## ✅ Definition of Done
+
+- Объяснить, как API, persistence и background execution оборачивают прежний Capstone workflow, не заменяя его новой архитектурой.
+- Проследить задачу через API, persistent status, execution trace и результат.
+- Запустить проверки сервиса на mock/deterministic режиме и подтвердить, что запрещённое действие не исполняется.
+- Различить `blocked`, `failed` и `needs_approval`; не повторять неоднозначную запись без гарантии идемпотентности.
+- Сопоставить измеренный KPI с baseline и target из Week 8 и назвать эксплуатационный риск.
 
 ---
 

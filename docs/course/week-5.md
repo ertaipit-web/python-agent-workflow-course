@@ -13,6 +13,8 @@
 </dl>
 </div>
 
+> 🧭 **Где мы:** LLM → Context / State → Tools → **[Runtime / Orchestration]** → Policy / Permissions → Evaluation / Observability.
+
 ---
 
 !!! note "Что меняем в Capstone"
@@ -24,6 +26,9 @@
 2. Где в Capstone tool proposal проходит validation до исполнения?
 
 ## Материал
+
+!!! question "🤔 Predict"
+  Вызов модели трижды завершился timeout, а лимит попыток исчерпан. Должен ли runtime продолжать вызывать модель, пометить запуск `blocked` или завершить его как ошибку выполнения?
 
 В Week 4 мы научились вызывать модель через `ModelClient`. Теперь строим runtime вокруг этой capability: сохраняем состояние между ролями, задаём переходы кодом, ограничиваем бюджет и останавливаем опасные side effects до исполнения. Реализуем это на обычном Python; новый framework не нужен.
 
@@ -129,6 +134,9 @@ issue → planner → schema validation → человек утверждает 
 
 На выходе программа печатает артефакт и предлагает следующий шаг; она не меняет код. Добавьте тесты на invalid schema, provider timeout и `needs_input`.
 
+!!! success "🎉 What you can do now"
+  Вы можете ограничить выполнение конечным бюджетом, сохранить состояние между шагами и остановить запуск на HumanGate до side effect.
+
 !!! rule "Rule"
     Явные state, адаптер внешнего сервиса и конечные retry-бюджеты полезны в любом интеграционном workflow.
 
@@ -140,6 +148,15 @@ issue → planner → schema validation → человек утверждает 
 1. Какую проблему решает runtime поверх `ModelClient`?
 2. Чем `RunPolicy` отличается от `HumanGate`?
 3. Где в Capstone сохраняется состояние и где останавливается side effect?
+
+## ✅ Definition of Done
+
+- Объяснить, зачем runtime нужен поверх `ModelClient`, и различать обязанности `RunPolicy` и `HumanGate`.
+- Реализовать переходы workflow по полям State, а не по свободному тексту модели.
+- Тестом проверить invalid schema, timeout, конечный retry budget и `needs_input`.
+- Показать, что исчерпание retry завершает выполнение, а незакрытый HumanGate не допускает side effect.
+
+> → **Дальше:** runtime управляет переходами и остановками; в Week 6 сузим, какие инструменты и действия ему вообще разрешено выполнять.
 
 ---
 
