@@ -46,14 +46,14 @@ Capstone не заканчивается работающим agent workflow. С
 flowchart TD
     Client["Client\n(HTTP)"] --> FastAPI["FastAPI Service\nPOST /tasks\nGET /tasks/{id}\nGET /health"]
     FastAPI --> TaskStore[("Task Store\nPostgreSQL")]
-    FastAPI --> Runtime["Agent Runtime\n(known workflow\nScriptedPlanner + Policy + HumanGate)"]
-    Runtime --> Planner["Workflow / Planner\n(Weeks 2-5)"]
-    Runtime --> Policy["Policy + Approval\n(Weeks 5-6)"]
-    Planner -. optional .-> Model["ModelClient\n(Week 4, implementation detail)"]
+    FastAPI --> Runtime["AgentRuntime"]
+    Runtime --> Planner["ScriptedPlanner\n(deterministic)"]
+    Planner --> Policy["Policy + HumanGate"]
     Policy --> Tools["Tool execution\nGitHub / API / shell"]
     Tools --> External["External API\nGitHub / др."]
     Runtime --> Results[("Results\nPersistent State")]
     Runtime --> Observability["Logs / Traces / Eval\n(Week 7)"]
+    Model["ModelClient\n(Week 4 extension point;\nnot connected)"]
     classDef svc fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
     classDef db fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
     classDef ext fill:#fff3e0,stroke:#ef6c00,stroke-width:2px;
@@ -62,6 +62,8 @@ flowchart TD
     class TaskStore,Results db;
     class Model,External ext;
 ```
+
+Production Layer uses deterministic `ScriptedPlanner`; `ModelClient` remains an extension point introduced in Week 4 and is not connected to this runtime.
 
 ---
 
@@ -565,7 +567,7 @@ Jitter предотвращает синхронные повторы при rat
 ### Проверь себя
 
 1. Чем `blocked` отличается от `failed` в production execution?
-2. Почему `ModelClient` в Week 9 остаётся implementation detail, а не основным архитектурным центром?
+2. Почему текущий Production Layer работает с `ScriptedPlanner`, а `ModelClient` остаётся неподключённой extension point?
 3. Какой outcome из Week 8 должен стать измеримым KPI в Week 9?
 
 ---

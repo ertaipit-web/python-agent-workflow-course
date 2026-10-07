@@ -213,7 +213,7 @@ Workflow не ограничен только изменениями в `labs/in
 | Week 1 | Baseline, problem-definition | KPI report: baseline (ручной процесс) vs agent |
 | Week 2 | Workflow / Handoff | AgentRuntime: planner → tools → review |
 | Week 3 | Context / State | Persistent State в PostgreSQL, `path:line` evidence в trace |
-| Week 4 | ModelClient | `ModelClient` — архитектурный компонент курса. Production Layer использует deterministic `ScriptedPlanner` для воспроизводимого demo/test flow. Для реального agent workflow подключите LLM-провайдер через ModelClient. |
+| Week 4 | ModelClient | `ModelClient` — архитектурная граница курса; текущий Production Layer использует deterministic `ScriptedPlanner`. Подключение LLM через ModelClient возможно как будущее расширение, но сейчас не реализовано. |
 | Week 5 | Runtime / Policy / HumanGate | `AgentRuntime`, `Policy` и `HumanGate`. Finite run budget изучается в учебном runtime Week 5, но не подключён к deterministic Production Layer. |
 | Week 6 | Tools / Permissions | Tool registry, Policy (allowlist), Permission (scope), Approval |
 | Week 7 | Evaluation / Trace | Trace события, метрики (quality, cost, latency, human intervention) |
