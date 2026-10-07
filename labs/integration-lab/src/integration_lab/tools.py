@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from typing import Any
 
 from integration_lab.client import IssueApiClient
 from integration_lab.issue_api import SCOPE_READ, SCOPE_WRITE
@@ -44,7 +45,22 @@ def _labels(arguments: Mapping[str, object]) -> tuple[str, ...]:
     return ()
 
 
-def build_registry(client: IssueApiClient) -> dict[str, Tool]:
+def build_registry(client: IssueApiClient | None) -> dict[str, Tool]:
+    """Build the tool registry.
+
+    When client is None (test mode), handlers are still defined but never
+    invoked — ScriptedPlanner returns empty calls, so the loop body never
+    reaches tool.handler(). This keeps the registry consistent without
+    requiring a real GitHub client.
+    """
+    def _no_client(*_args: object, **_kwargs: object) -> dict[str, Any]:
+        raise RuntimeError("no GitHub client configured for this runner mode")
+
+    def _safe_handler(handler):
+        if client is None:
+            return lambda arguments: _no_client()
+        return handler
+
     tools = (
         Tool(
             spec=ToolSpec(
@@ -61,12 +77,12 @@ def build_registry(client: IssueApiClient) -> dict[str, Tool]:
                 side_effect=False,
                 integer_limits={"limit": (1, 100)},
             ),
-            handler=lambda arguments: client.list_issues(
+            handler=_safe_handler(lambda arguments: client.list_issues(
                 str(arguments["owner"]),
                 str(arguments["repository"]),
                 state=str(arguments.get("state", "open")),
                 limit=int(arguments.get("limit", 10)),
-            ),
+            )),
         ),
         Tool(
             spec=ToolSpec(
@@ -82,9 +98,9 @@ def build_registry(client: IssueApiClient) -> dict[str, Tool]:
                 side_effect=False,
                 integer_limits={"number": (1, 1_000_000)},
             ),
-            handler=lambda arguments: client.get_issue(
+            handler=_safe_handler(lambda arguments: client.get_issue(
                 str(arguments["owner"]), str(arguments["repository"]), int(arguments["number"])
-            ),
+            )),
         ),
         Tool(
             spec=ToolSpec(
@@ -101,13 +117,13 @@ def build_registry(client: IssueApiClient) -> dict[str, Tool]:
                 required_scopes=WRITE_SCOPES,
                 side_effect=True,
             ),
-            handler=lambda arguments: client.create_issue(
+            handler=_safe_handler(lambda arguments: client.create_issue(
                 str(arguments["owner"]),
                 str(arguments["repository"]),
                 title=str(arguments["title"]),
                 body=str(arguments.get("body", "")),
                 labels=_labels(arguments),
-            ),
+            )),
         ),
         Tool(
             spec=ToolSpec(
@@ -123,9 +139,9 @@ def build_registry(client: IssueApiClient) -> dict[str, Tool]:
                 side_effect=True,
                 integer_limits={"number": (1, 1_000_000)},
             ),
-            handler=lambda arguments: client.close_issue(
+            handler=_safe_handler(lambda arguments: client.close_issue(
                 str(arguments["owner"]), str(arguments["repository"]), int(arguments["number"])
-            ),
+            )),
         ),
     )
     return {tool.spec.name: tool for tool in tools}

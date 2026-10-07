@@ -30,6 +30,7 @@ from integration_lab.runtime import (
     COMPLETED,
     NEEDS_APPROVAL,
     AgentRuntime,
+    Policy,
     RunReport,
     ScriptedPlanner,
     ToolCall,
@@ -109,19 +110,46 @@ class HealthResponse(BaseModel):
     timestamp: datetime
 
 
-def get_runtime() -> AgentRuntime:
-    if not settings.github_token:
-        raise HTTPException(status_code=503, detail="GitHub token not configured")
-
-    client = IssueApiClient(
+def _build_client() -> IssueApiClient:
+    """Create a real IssueApiClient. Caller must ensure GITHUB_TOKEN is set."""
+    return IssueApiClient(
         base_url=settings.github_base_url,
         token=settings.github_token,
         timeout=2.0,
         max_attempts=settings.default_max_retries,
     )
 
-    from integration_lab.runtime import Policy
+
+def _build_policy() -> Policy:
+    """Build a permissive policy for demo/production modes."""
     from integration_lab.tools import READ_ONLY_SCOPES, WRITE_SCOPES
+
+    return Policy(
+        granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
+        allowed_repositories=frozenset([("*", "*")]),
+    )
+
+
+def get_runtime() -> AgentRuntime:
+    """Build the AgentRuntime for the current RUNNER_MODE.
+
+    Modes:
+      test   — no IssueApiClient, empty ScriptedPlanner. No GitHub credentials needed.
+      demo   — real IssueApiClient + ScriptedPlanner(create_issue). Requires GITHUB_TOKEN.
+      (any other value treated as production) — real IssueApiClient + empty ScriptedPlanner.
+      Requires GITHUB_TOKEN.
+    """
+    if settings.runner_mode == "test":
+        # Test mode: no real GitHub client, no tool calls. No credentials required.
+        policy = _build_policy()
+        planner = ScriptedPlanner(calls=[])
+        return AgentRuntime(client=None, policy=policy, planner=planner)
+
+    if not settings.github_token:
+        raise HTTPException(status_code=503, detail="GitHub token not configured")
+
+    client = _build_client()
+    policy = _build_policy()
 
     if settings.runner_mode == "demo":
         planner = ScriptedPlanner(calls=[
@@ -136,23 +164,13 @@ def get_runtime() -> AgentRuntime:
                 },
             )
         ])
-        allowed = frozenset([(settings.demo_owner, settings.demo_repo)])
         if settings.demo_approve_writes:
             policy = Policy(
-                granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
-                allowed_repositories=allowed,
+                granted_scopes=policy.granted_scopes,
+                allowed_repositories=policy.allowed_repositories,
                 approver=lambda call, reason: True,
             )
-        else:
-            policy = Policy(
-                granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
-                allowed_repositories=allowed,
-            )
     else:
-        policy = Policy(
-            granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
-            allowed_repositories=frozenset([("*", "*")]),
-        )
         planner = ScriptedPlanner(calls=[])
 
     return AgentRuntime(client=client, policy=policy, planner=planner)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 import socket
 import time
 from collections.abc import Sequence
@@ -161,9 +162,16 @@ class IssueApiClient:
         raise ServerError(f"{method} {path} failed", attempts=self._max_attempts)
 
     def _backoff(self, attempt: int) -> float:
-        """Exponential backoff with jitter, capped at backoff_max."""
+        """Exponential backoff with bounded jitter, capped at backoff_max.
+
+        delay = min(backoff_base * 2^(attempt-1), backoff_max)
+        jittered = delay * uniform(0.5, 1.0)
+
+        The jitter prevents synchronized retries when multiple clients hit
+        the same rate limit. Bounded so tests can assert a range, not an exact value.
+        """
         delay = min(self._backoff_base * (2 ** (attempt - 1)), self._backoff_max)
-        return delay
+        return delay * random.uniform(0.5, 1.0)
 
 
 def _map_http_error(error: HTTPError, *, attempts: int) -> Exception:

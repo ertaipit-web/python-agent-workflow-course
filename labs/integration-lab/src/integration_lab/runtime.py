@@ -30,7 +30,12 @@ class Policy:
 
     def allows_repository(self, arguments: Mapping[str, object]) -> bool:
         repository = (str(arguments.get("owner", "")), str(arguments.get("repository", "")))
-        return repository in self.allowed_repositories
+        for allowed in self.allowed_repositories:
+            if allowed == ("*", "*"):
+                return True
+            if allowed == repository:
+                return True
+        return False
 
 
 @dataclass(frozen=True)
@@ -104,7 +109,7 @@ class ScriptedPlanner:
 
 @dataclass
 class AgentRuntime:
-    client: IssueApiClient
+    client: IssueApiClient | None
     policy: Policy
     planner: Planner
     run_id: str = "run-1"

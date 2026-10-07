@@ -215,7 +215,7 @@ GET  /health          → liveness probe
 | `running` | Выполняется в background | `null` |
 | `completed` | Успешно завершено | установлено |
 | `failed` | Ошибка выполнения | установлено |
-| `needs_approval` | Ожидает подтверждения humans | `null` (не terminal) |
+| `needs_approval` | Ожидает подтверждения humans (side effect) | `null` (terminal, но не success) |
 | `blocked` | Ограничение policy (tool не зарегистрирован, repository не в allowlist, не хватает scope, invalid arguments, external error) | `null` |
 
 `blocked` отличается от `failed`:
@@ -421,7 +421,7 @@ result
 | `task_id` | UUID задачи (PK Task) | Task, Execution, логи |
 | `run_id` | Идентификатор agent run (`run-{uuid}`) | Execution.run_id, TraceEvent |
 | `execution_id` | В API = `run_id` (совпадает с Week 8) | GET /tasks/{id} |
-| `status` | queued / running / completed / failed / needs_approval | Task, Execution |
+| `status` | queued / running / completed / failed / needs_approval / blocked | Task, Execution |
 | `latency_ms` | Время выполнения | логи |
 | `tool_calls` | Имя, аргументы (redacted), статус | TraceEvent, Execution.trace |
 | `errors` | Текст ошибки и тип | Task.error, Execution.trace |
@@ -600,9 +600,12 @@ Production Layer использует **exponential backoff с jitter** в `Issu
 
 ```text
 backoff(attempt) = min(backoff_base × 2^(attempt-1), backoff_max)
+jittered = backoff × uniform(0.5, 1.0)
 ```
 
-Для `DEFAULT_MAX_RETRIES=3`: задержки ~0.5s, 1s, 2s (каприруются на `backoff_max=4s`).
+Для `DEFAULT_MAX_RETRIES=3`: задержки ~0.25–0.5s, 0.5–1s, 1–2s (каприруются на `backoff_max=4s`).
+
+Jitter предотвращает синхронные повторы при rate limit — несколько клиентов не бьют в API одновременно. Ограничен: тесты проверяют диапазон, а не конкретное значение.
 
 **Явно разделены retryable и non-retryable ошибки:**
 

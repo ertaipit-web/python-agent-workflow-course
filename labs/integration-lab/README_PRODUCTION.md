@@ -36,12 +36,18 @@ cd labs/integration-lab
 
 # Скопируйте .env.example и заполните значения
 cp .env.example .env
-
-# Обязательно: GITHUB_TOKEN (fine-grained Personal Access Token с minimum permissions)
-# Рекомендуется: один token → один repository → minimum permissions
-# Не рекомендуется classic PAT со scope 'repo' — он даёт доступ ко всем репозиториям
-# Опционально: MODEL_PROVIDER, MODEL_NAME для LLM
 ```
+
+**По умолчанию `RUNNER_MODE=test`** — не требует `GITHUB_TOKEN`. Задача создаётся, но tool calls не выполняются.
+
+Для demo/production режимов нужен **fine-grained Personal Access Token**:
+- один token → один repository → minimum permissions
+- Issues: read/write (read для list/get, write для create/close)
+- Contents: read/write **не требуется** — этот flow работает только через Issues
+- Metadata: read (требуется GitHub API для валидации токена)
+- Избегайте classic PAT со scope `repo` — он даёт доступ ко всем репозиториям
+
+Опционально: `MODEL_PROVIDER`, `MODEL_NAME` для LLM.
 
 ### 2. Запуск через Docker Compose (рекомендуется)
 
@@ -111,7 +117,22 @@ python -m integration_lab.service
 }
 ```
 
-**Статусы:** `queued` | `running` | `completed` | `failed` | `needs_approval`
+**Статусы:** `queued` | `running` | `completed` | `failed` | `needs_approval` | `blocked`
+
+### Статусный контракт
+
+| Статус | Terminal? | `completed_at` | Значение |
+|---|---|---|---|
+| `queued` | нет | `null` | Задача создана, ожидает выполнения |
+| `running` | нет | `null` | Выполняется в background |
+| `completed` | да | установлен | Успешно завершена, `result` доступен |
+| `failed` | да | установлен | Ошибка выполнения, `error` доступен |
+| `needs_approval` | да | `null` | Ожидает human approval side effect. Результат и trace доступны, но задача не считается завершённой. |
+| `blocked` | да | `null` | Остановлена по правилам policy (insufficient scope, invalid arguments, tool not registered, repository not allowed, tool failure). `error` содержит причину. |
+
+`blocked` — terminal outcome, но `completed_at` остаётся `null`. Это осознанное решение: `blocked` и `failed` — разные причины остановки. `failed` = системная ошибка (exception), `blocked` = policy rejection. `needs_approval` также не выставляет `completed_at`, так как задача ожидает ручного подтверждения.
+
+`needs_approval` — не success state. GET возвращает статус `needs_approval`, `result` с `pending_approval` и `trace`. Задача остаётся в этом статусе до ручного вмешательства (в текущей версии нет API для resume — это намеренно).
 
 ### `GET /health`
 Liveness probe.
@@ -132,7 +153,7 @@ Liveness probe.
 | Переменная | Описание | Default |
 |------------|----------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql+psycopg://postgres:postgres@localhost:5432/agent_course` |
-| `GITHUB_TOKEN` | GitHub Personal Access Token | **required** |
+| `GITHUB_TOKEN` | GitHub Personal Access Token (требуется для demo/production режимов) | `""` (не требуется для `RUNNER_MODE=test`) |
 | `GITHUB_BASE_URL` | GitHub API base URL | `https://api.github.com` |
 | `MODEL_PROVIDER` | Model provider (Week 4) | `ollama` |
 | `MODEL_NAME` | Model name | `qwen3:8b` |
@@ -141,6 +162,11 @@ Liveness probe.
 | `SERVICE_HOST` | Bind host | `0.0.0.0` |
 | `SERVICE_PORT` | Bind port | `8000` |
 | `LOG_LEVEL` | Log level | `INFO` |
+| `DEFAULT_MAX_RETRIES` | Max retries for GitHub API calls | `3` |
+| `RUNNER_MODE` | `test` (пустой planner) или `demo` (create_issue ToolCall) | `test` |
+| `GITHUB_OWNER` | Owner для demo create_issue | `demo-owner` |
+| `GITHUB_REPO` | Repository для demo create_issue | `demo-repo` |
+| `DEMO_APPROVE_WRITES` | Auto-approve write operations в demo mode | `false` |
 
 ## Тесты
 
@@ -209,20 +235,22 @@ Production Layer имеет три чётко разделённых режим�
 
 ```text
 RUNNER_MODE=test
-mock external API (IssueApi из issue_api.py)
-deterministic planner (ScriptedPlanner с пустым calls=[])
+ScriptedPlanner с пустым calls=[]
+без IssueApiClient
+без GITHUB_TOKEN
 no real side effects
 ```
 
-Задача создаётся, но tool calls не выполняются. Используется в CI и для проверки lifecycle API.
+Задача создаётся и успешно завершается (`completed` с пустым `result.results` и `trace`), но tool calls не выполняются. Используется в CI и для проверки lifecycle API. **Не требует GITHUB_TOKEN.**
 
 ### Demo
 
 ```text
 RUNNER_MODE=demo
-deterministic ToolCall(create_issue)
-mock external API или реальный GitHub (опционально)
-DEMO_APPROVE_WRITES=true — auto-approve write operations
+ScriptedPlanner с ToolCall(create_issue)
+IssueApiClient (mock или реальный GitHub)
+DEMO_APPROVE_WRITES — auto-approve write operations
+требует GITHUB_TOKEN
 ```
 
 Демонстрирует полный vertical slice: POST → ToolCall → Policy → Approval → API → Trace → Result. По умолчанию `DEMO_APPROVE_WRITES=false` — write operations требуют явного подтверждения.
@@ -230,10 +258,10 @@ DEMO_APPROVE_WRITES=true — auto-approve write operations
 ### Real integration
 
 ```text
-RUNNER_MODE=demo
+RUNNER_MODE=demo (или любое значение, кроме test/demo)
 реальный GitHub API (настройте через GITHUB_BASE_URL и GITHUB_TOKEN)
 реальные external side effects
-требует explicit opt-in
+требует explicit opt-in и GITHUB_TOKEN
 ```
 
 Для реальной интеграции используйте fine-grained PAT с minimum permissions: один token → один repository → minimum permissions.

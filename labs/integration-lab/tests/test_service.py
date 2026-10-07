@@ -4,6 +4,7 @@ import time
 import uuid
 
 import pytest
+from fastapi import HTTPException
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.pool import StaticPool
@@ -484,7 +485,7 @@ async def test_async_execution_does_not_block_post(client):
 
 @pytest.mark.asyncio
 async def test_retry_backoff_config(client):
-    """IssueApiClient must use exponential backoff between retries."""
+    """IssueApiClient must use exponential backoff with bounded jitter."""
     from integration_lab.client import IssueApiClient
 
     client_obj = IssueApiClient(
@@ -494,12 +495,22 @@ async def test_retry_backoff_config(client):
         backoff_base=0.1,
         backoff_max=0.5,
     )
-    # backoff(1) = 0.1, backoff(2) = 0.2, backoff(3) = 0.4
-    assert client_obj._backoff(1) == 0.1
-    assert client_obj._backoff(2) == 0.2
-    assert client_obj._backoff(3) == 0.4
+    # Exponential growth: base * 2^(attempt-1), then jittered by uniform(0.5, 1.0).
+    # backoff(1) base = 0.1, jittered range = [0.05, 0.10]
+    # backoff(2) base = 0.2, jittered range = [0.10, 0.20]
+    # backoff(3) base = 0.4, jittered range = [0.20, 0.40]
+    cases = [
+        (1, 0.1, 0.1),
+        (2, 0.2, 0.2),
+        (3, 0.4, 0.4),
+    ]
+    for attempt, expected_min, expected_max in cases:
+        delay = client_obj._backoff(attempt)
+        assert expected_min / 2 <= delay <= expected_max, (
+            f"backoff({attempt})={delay} not in [{expected_min / 2}, {expected_max}]"
+        )
     # capped at backoff_max
-    assert client_obj._backoff(10) == 0.5
+    assert client_obj._backoff(10) <= 0.5
 
 
 @pytest.mark.asyncio
@@ -519,3 +530,85 @@ async def test_blocked_status_contract(client):
         await session.commit()
         assert updated.status == "blocked"
         assert updated.completed_at is None, "blocked must not set completed_at"
+
+
+@pytest.mark.asyncio
+async def test_test_mode_works_without_github_token(monkeypatch, db_engine):
+    """RUNNER_MODE=test must not require GITHUB_TOKEN.
+
+    Regression: previously get_runtime() raised 503 before checking
+    RUNNER_MODE, so test mode was unusable without a token.
+    """
+    from integration_lab import service
+    from integration_lab.service import get_runtime
+
+    settings = IntegrationTestSettings(
+        runner_mode="test",
+        github_token="",  # explicitly empty
+        github_base_url="https://api.github.com",
+    )
+    monkeypatch.setattr(service, "settings", settings)
+    monkeypatch.setattr(service, "engine", db_engine[0])
+    monkeypatch.setattr(service, "async_session_maker", db_engine[1])
+
+    # Must not raise — test mode does not build a real IssueApiClient.
+    runtime = get_runtime()
+    assert runtime.client is None
+    assert runtime.planner.plan("anything", runtime.tools()) == []
+
+    # End-to-end: POST /tasks in test mode with no token must succeed.
+    settings2 = IntegrationTestSettings(
+        runner_mode="test",
+        github_token="",
+        github_base_url="https://api.github.com",
+    )
+    monkeypatch.setattr(service, "settings", settings2)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.post("/tasks", json={"task": "Test mode without token"})
+        assert response.status_code == 202
+        task_id = response.json()["task_id"]
+
+        data = await _wait_for_task(ac, task_id)
+        assert data["task_id"] == task_id
+        assert data["status"] == "completed"
+        assert data["result"] is not None
+        assert data["result"]["status"] == "completed"
+        assert data["result"]["results"] == []
+        assert data["result"]["trace"] == []
+
+
+@pytest.mark.asyncio
+async def test_production_mode_requires_github_token(monkeypatch, db_engine):
+    """Production mode (non-test, non-demo) must still reject missing GITHUB_TOKEN."""
+    from integration_lab import service
+    from integration_lab.service import get_runtime
+
+    settings = IntegrationTestSettings(
+        runner_mode="production",
+        github_token="",  # missing
+    )
+    monkeypatch.setattr(service, "settings", settings)
+
+    with pytest.raises(HTTPException) as exc_info:
+        get_runtime()
+    assert exc_info.value.status_code == 503
+    assert "GitHub token not configured" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_demo_mode_requires_github_token(monkeypatch, db_engine):
+    """Demo mode must still require GITHUB_TOKEN."""
+    from integration_lab import service
+    from integration_lab.service import get_runtime
+
+    settings = IntegrationTestSettings(
+        runner_mode="demo",
+        github_token="",  # missing
+    )
+    monkeypatch.setattr(service, "settings", settings)
+
+    with pytest.raises(HTTPException) as exc_info:
+        get_runtime()
+    assert exc_info.value.status_code == 503
