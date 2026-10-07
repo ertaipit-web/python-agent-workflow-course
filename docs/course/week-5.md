@@ -64,8 +64,8 @@ Workflow: решить, что делать дальше; условие пер�
 State: {issue, acceptance_criteria[2], allowed_paths[], status: planning}
   ↓ собирает сообщение из state, инструкции роли и правил формата
 RoleRunner → ModelClient: один вызов; на выходе — JSON по схеме или явная ошибка
-  ↓ схема невалидна / пустой ответ / timeout
-RunPolicy: один повтор с текстом ошибки, затем blocked — дальше не идём
+  ↓ схема невалидна / пустой ответ / timeout во время вызова
+RunPolicy: один ограниченный повтор; после исчерпания — failed, дальше не идём
   ↓ scope не подтверждён человеком
 HumanGate: needs_approval, запись не выполняется
 ```
@@ -92,7 +92,7 @@ HumanGate: needs_approval, запись не выполняется
 
 Платный API для local-first пути не требуется. Облачный fallback необязателен и потенциально платен: он должен быть явно включён, иметь лимит и не получать приватный контекст без отдельного разрешения. Условия локального прогона — модель и тег, квантование, `num_ctx`, wall-clock, число вызовов, память — фиксируются по [странице о выборе модели](../local-models.md).
 
-**Расширение:** сравните две модели или провайдера на одном наборе задач; routing должен иметь явные лимиты и уметь вернуть `needs_input`/`blocked`, а не бесконечно переключать модели.
+**Расширение:** сравните две модели или провайдера на одном наборе задач; routing должен иметь явные лимиты и завершать execution error как `failed`, возвращать `needs_input` для неоднозначности и `blocked` только при отказе policy до вызова.
 {: .course-note .course-note--extension }
 
 ---
@@ -116,8 +116,10 @@ commands_approved[]
 test_results[]
 review_findings[]
 iteration_count
-status: planning|needs_approval|implementing|testing|blocked|done
+status: planning|needs_approval|implementing|testing|blocked|failed|done
 ```
+
+`blocked` — policy не допустила действие до исполнения; `failed` — model/tool/runtime execution уже начался, но завершился ошибкой или исчерпал retry budget.
 
 Секреты, `.env`, токены и содержимое credentials не должны попадать в промпты, артефакты логов или commit. Используйте `.gitignore`, redaction и отдельный учебный репозиторий.
 
@@ -154,7 +156,7 @@ issue → planner → schema validation → человек утверждает 
 - Объяснить, зачем runtime нужен поверх `ModelClient`, и различать обязанности `RunPolicy` и `HumanGate`.
 - Реализовать переходы workflow по полям State, а не по свободному тексту модели.
 - Тестом проверить invalid schema, timeout, конечный retry budget и `needs_input`.
-- Показать, что исчерпание retry завершает выполнение, а незакрытый HumanGate не допускает side effect.
+- Показать, что исчерпание retry завершает выполнение как `failed`, а policy rejection до tool execution даёт `blocked`; незакрытый HumanGate не допускает side effect.
 
 > → **Дальше:** runtime управляет переходами и остановками; в Week 6 сузим, какие инструменты и действия ему вообще разрешено выполнять.
 

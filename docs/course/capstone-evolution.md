@@ -96,7 +96,7 @@ Week 3: agent receives issue
 
 **Reason:** без конечных retry-лимитов цикл «попробовать ещё раз» превращается в зависший процесс.
 
-**Result:** student runs workflow с конечным бюджетом на mock; invalid schema → `blocked`, unsafe action → `needs_approval`.
+**Result:** student runs workflow с конечным бюджетом на mock; исчерпание retry после invalid schema → `failed`; policy rejection до tool execution → `blocked`; разрешённый side effect ждёт `needs_approval`.
 
 В Week 9 Production Layer `needs_approval` — non-terminal persisted snapshot остановленного execution на HumanGate с `completed_at = null`. Сервис не предоставляет resume endpoint, поэтому это не полноценное возобновляемое состояние очереди.
 

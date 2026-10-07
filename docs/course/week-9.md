@@ -98,7 +98,7 @@ GET  /health          → liveness probe
 | `completed` | Успешно завершено | установлено |
 | `failed` | Ошибка выполнения | установлено |
 | `needs_approval` | Сохранённый non-terminal snapshot остановленного execution на HumanGate | `null` |
-| `blocked` | Ограничение policy (tool не зарегистрирован, repository не в allowlist, не хватает scope, invalid arguments) | установлено |
+| `blocked` | Действие отклонено до исполнения: policy, неизвестный tool, repository вне allowlist, недостающий scope, invalid arguments или отклонённое human approval | установлено |
 
 `blocked` отличается от `failed`:
 - `failed` — системная ошибка после старта выполнения, например исключение, timeout, provider unavailable или исчерпание retry budget;

@@ -126,9 +126,9 @@ python -m integration_lab.service
 | `queued` | нет | `null` | Задача создана, ожидает выполнения |
 | `running` | нет | `null` | Выполняется в background |
 | `completed` | да | установлен | Успешно завершена, `result` доступен |
-| `failed` | да | установлен | Ошибка выполнения, `error` доступен |
+| `failed` | да | установлен | Ошибка после начала execution (provider/tool/API failure, timeout или исчерпанный retry), `error` доступен |
 | `needs_approval` | нет | `null` | Persisted snapshot выполнения, остановленного на HumanGate; это не success и не completed execution. |
-| `blocked` | да | установлен | Остановлена по правилам policy (insufficient scope, invalid arguments, tool not registered, repository not allowed). `error` содержит причину. |
+| `blocked` | да | установлен | Действие не допущено до исполнения: policy rejection, insufficient scope, invalid arguments, unknown tool, repository not allowed или явно отклонённое human approval. `error` содержит причину. |
 
 `blocked` и `failed` — terminal outcomes и фиксируют `completed_at`. `needs_approval` — non-terminal persisted snapshot остановленного execution на HumanGate с `completed_at = null`. Текущий сервис не предоставляет resume endpoint, поэтому это не полноценное возобновляемое состояние очереди, не success и не completed execution.
 
@@ -194,12 +194,9 @@ docker run -p 8000:8000 \
 
 ## CI/CD
 
-GitHub Actions workflow: `.github/workflows/capstone-ci.yml`
+Единый GitHub Actions workflow: [`.github/workflows/pages.yml`](../../.github/workflows/pages.yml). Он запускается при pull request и push в `main`, проверяет labs, собирает сайт и выполняет Docker smoke test перед публикацией Pages.
 
-Запускается при изменениях в `labs/integration-lab/**`:
-1. **test** — pytest + pyright + ruff (с PostgreSQL service)
-2. **build** — Docker build + smoke test
-3. **zensical-build** — проверка сборки курса
+Workflow не ограничен только изменениями в `labs/integration-lab/**`.
 
 ## KPI Report
 

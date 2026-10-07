@@ -4,7 +4,7 @@ Every handoff artifact must contain a status, a short summary, evidence with sou
 
 ## Statuses
 
-A handoff carries one of three statuses: `complete`, `needs_input` or `blocked`. `needs_input` means the request is ambiguous and a human has to answer a question. `blocked` means the run cannot continue safely, for example after an invalid schema, a denied permission or an exhausted budget.
+A handoff carries one of four statuses: `complete`, `needs_input`, `blocked` or `failed`. `needs_input` means the request is ambiguous and a human has to answer a question. `blocked` means a policy or permission rejected the next action before it executed. `failed` means a model/tool execution started but produced an invalid handoff, hit an error or exhausted its retry budget.
 
 A missing fact must produce `needs_input` instead of a confident guess. Success-shaped fallbacks are the main reason an agent workflow hides failures from its operator.
 
@@ -14,4 +14,4 @@ Evidence is a list of claims, and every claim points at a file with a line range
 
 ## Validation
 
-The orchestrator validates the handoff schema before it calls the next role. Unknown fields, an empty evidence list for a code finding, or a status that does not match the content of the summary are all validation errors, not details of style.
+The orchestrator validates the handoff schema before it calls the next role. Unknown fields, an empty evidence list for a code finding, or a status that does not match the content of the summary are validation errors, not details of style. If the producing model already ran and bounded retries cannot repair the output, the run is `failed`; validation prevents the next role from executing.

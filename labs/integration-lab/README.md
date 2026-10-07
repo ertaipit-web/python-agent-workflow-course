@@ -61,7 +61,7 @@ side effect    → одобрен человеком?
 execute        → только теперь
 ```
 
-Отказ не превращается в «успешный» результат: `run.status` становится `blocked` (policy/scope/allowlist rejection), `failed` (tool execution error) или `needs_approval` (execution остановлен на HumanGate), а `reason` объясняет, какая проверка сработала. В сервисе `needs_approval` сохраняется как non-terminal snapshot с `completed_at = null`; resume endpoint отсутствует.
+Отказ не превращается в «успешный» результат: `run.status` становится `blocked` (policy/scope/allowlist rejection до исполнения или отклонённое approval), `failed` (ошибка уже начавшегося tool/API execution) или `needs_approval` (решение HumanGate ожидается), а `reason` объясняет переход. В сервисе `needs_approval` сохраняется как non-terminal snapshot с `completed_at = null`; resume endpoint отсутствует.
 
 ## Почему локальный сервис, а не api.github.com
 
@@ -84,7 +84,7 @@ client = IssueApiClient(
 
 - Идемпотентное чтение (`GET`) повторяется при `429`, `5xx`, таймауте и разрыве соединения в пределах retry budget. `DEFAULT_MAX_RETRIES=3` означает три повтора после первоначального запроса, то есть максимум четыре попытки.
 - Запись (`POST`, `PATCH`) не повторяется никогда.
-- Таймаут записи даёт `WriteOutcomeUnknownError`: запрос уже отправлен, поэтому внешний эффект мог примениться. Тест `test_write_timeout_is_reported_as_an_unknown_outcome` показывает, что эффект действительно приходит позже, а наивный повтор создаёт дубликат. Отсюда правило недели 12: перед повтором действия с эффектом сверяйте его результат, а при поддержке API используйте idempotency key.
+- Таймаут записи даёт `WriteOutcomeUnknownError`: запрос уже отправлен, поэтому внешний эффект мог примениться. Тест `test_write_timeout_is_reported_as_an_unknown_outcome` показывает, что эффект действительно приходит позже, а наивный повтор создаёт дубликат. Это принцип модуля Recovery Advanced Track: перед повтором действия с эффектом сверяйте его результат, а при поддержке API используйте idempotency key.
 - Ошибки 401/403/404/4xx отображаются в типизированные исключения, а не в текст ответа.
 
 ## Подмена модели

@@ -111,7 +111,8 @@ schema validation (Pydantic / JSON Schema)
     ↓
 valid?
  ├─ yes → next step receives typed dict
- └─ no  → retry with error / return needs_input / blocked
+ └─ no  → bounded retry; exhausted → failed
+           valid result reveals ambiguity → needs_input
 ```
 
 ```python
@@ -130,7 +131,7 @@ def validate_structured_output(raw: dict, schema: type[BaseModel]) -> BaseModel:
         raise
 ```
 
-**Failure example:** модель вернула `{"issue_type": "feature"}` — не в enum. Validation выбрасывает `ValidationError`. Retry logic ловит его, делает повторную попытку с error context. Только после исчерпания retry — поднимается `ProviderError`, workflow решает: `needs_input` / `blocked`.
+**Failure example:** модель вернула `{"issue_type": "feature"}` — не в enum. Validation выбрасывает `ValidationError`. Retry logic ловит его и делает ограниченную повторную попытку с error context. Если исчерпан бюджет и валидный ответ не получен, execution завершается как `failed`; `needs_input` нужен для валидного результата, который явно показывает неоднозначность.
 
 ---
 
@@ -157,7 +158,7 @@ next model step
 > - допустим ли инструмент (allowlist);
 > - валидны ли аргументы (schema);
 > - можно ли выполнить (permissions, approval);
-> - что делать с ошибкой (retry / escalate / blocked).
+> - что делать с ошибкой (ограниченный retry / escalate / `failed`); `blocked` означает отказ до исполнения.
 
 Это связывает Week 4 с Week 5–6: `ModelClient` возвращает `ToolCall`, `Runtime` валидирует и исполняет.
 
@@ -189,9 +190,9 @@ def execute_tool(call: ToolCall, registry: ToolRegistry, policy: Policy) -> Tool
 | Scenario | What runtime sees | What application should do |
 |----------|-------------------|----------------------------|
 | **A. Normal** | Valid response | Continue workflow |
-| **B. Timeout** | `TimeoutError` / no response | Retry (idempotent only) → escalate → `blocked` |
-| **C. Invalid structured output** | `ValidationError` | One retry with error context → `needs_input` / `blocked` |
-| **D. Provider error / unavailable** | HTTP 5xx / connection error | Retry with backoff → fallback provider / `blocked` |
+| **B. Timeout** | `TimeoutError` / no response | Ограниченный retry → после исчерпания бюджета `failed` |
+| **C. Invalid structured output** | `ValidationError` | Один ограниченный retry с error context → по исчерпании `failed`; `needs_input` только если валидный ответ выявил неоднозначность |
+| **D. Provider error / unavailable** | HTTP 5xx / connection error | Retry с backoff; разрешённый fallback — только по явной конфигурации, иначе после исчерпания бюджета `failed` |
 
 ```python
 class ProviderError(Exception):
@@ -258,7 +259,7 @@ def test_workflow_handles_invalid_output():
 |----------|---------------|
 | Structured output | schema validation (Pydantic) |
 | Tool call | arguments schema + policy + permissions |
-| Timeout | retry (idempotent) / backoff / escalate |
+| Timeout | Ограниченный retry/backoff; после исчерпания бюджета — `failed` |
 | Provider unavailable | fallback / failure handling |
 | Expensive model | cost tracking / budget limit |
 | Slow model | latency budget / async |
@@ -273,7 +274,7 @@ def test_workflow_handles_invalid_output():
 
 1. Реализовать `ModelClient.generate(schema=...)` с Pydantic validation.
 2. Добавить один tool call через `ModelClient.generate_with_tools(...)` и выполнить его через runtime.
-3. Проверить failure case: передать намеренно невалидный schema, убедиться, что validation ловит ошибку.
+3. Проверить failure case: передать намеренно невалидный schema, убедиться, что validation ловит ошибку, а exhausted retry завершается как `failed`.
 4. Заменить реальный provider на `MockModelClient` и прогнать существующий workflow тест.
 
 **Расширение:** сравнить двух провайдеров на одном наборе задач и зафиксировать latency, cost и quality. Provider-specific настройки и подробное сравнение privacy тоже необязательны для зачёта Core.
@@ -309,7 +310,7 @@ def test_workflow_handles_invalid_output():
 - Объяснить, какие детали provider SDK изолирует `ModelClient`.
 - Проверить structured output и провести предложенный tool call через validation до исполнения.
 - Использовать mock provider для воспроизводимого теста и проверить невалидный ответ.
-- Обработать timeout или исчерпание retry так, чтобы сбой не выдавался за успешный результат.
+- Завершать timeout, provider failure и исчерпание retry как `failed`; оставлять `blocked` для отказа до исполнения.
 
 > → **Дальше:** теперь вызов модели изолирован и проверяем; в Week 5 построим runtime, который управляет состоянием, переходами, бюджетом и остановкой workflow.
 
