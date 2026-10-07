@@ -9,7 +9,7 @@ from integration_lab.client import IssueApiClient
 from integration_lab.issue_api import SCOPE_READ, SCOPE_WRITE, IssueApi, Token
 from integration_lab.runtime import (
     BLOCKED,
-    DONE,
+    COMPLETED,
     NEEDS_APPROVAL,
     AgentRuntime,
     Policy,
@@ -68,7 +68,7 @@ def test_read_tool_runs_with_only_a_read_scope(client: IssueApiClient) -> None:
 
     runtime, run = run_with(client, policy, [READ_CALL])
 
-    assert run.status == DONE
+    assert run.status == COMPLETED
     assert run.results[0][0]["title"] == "Filter ignores case"
     assert [event.transition_reason for event in run.trace] == ["tool_complete"]
     assert all(event.run_id == "test-run" for event in runtime.run("triage").trace)
@@ -102,7 +102,7 @@ def test_approved_write_reaches_the_external_system(client: IssueApiClient, api:
 
     _, run = run_with(client, policy, [READ_CALL, WRITE_CALL])
 
-    assert run.status == DONE
+    assert run.status == COMPLETED
     assert len(run.results) == 2
     assert run.results[1]["number"] == 2
     assert api.store.count() == 2
@@ -184,7 +184,7 @@ def test_external_failure_blocks_the_run_instead_of_reporting_success(
     assert blocked.status == BLOCKED
     assert blocked.trace[-1].error_type == "AuthenticationError"
     assert blocked.trace[-1].transition_reason == "tool_failed"
-    assert allowed.status == DONE
+    assert allowed.status == COMPLETED
 
 
 def test_redaction_hides_secrets_and_truncates_long_values() -> None:
@@ -212,5 +212,5 @@ def test_run_report_renders_a_readable_trace(client: IssueApiClient) -> None:
     _, run = run_with(client, policy, [READ_CALL])
     rendered = "\n".join(run.lines())
 
-    assert "- Status: `done`" in rendered
+    assert "- Status: `completed`" in rendered
     assert "| list_issues | complete |" in rendered

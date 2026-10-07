@@ -15,6 +15,9 @@
 
 ---
 
+!!! note "Что меняем в Capstone"
+    **Week 4.** Выносим model call за ModelClient boundary: structured output validation, tool calling lifecycle, retry/failure handling. Смена провайдера больше не требует переписывания workflow.
+
 ## Worked example: why provider abstraction
 
 Raw provider call → provider-specific code spread through workflow → **problem: workflow tied to one provider**
@@ -270,6 +273,9 @@ def test_workflow_handles_invalid_output():
 - обрабатывать типовые provider failures (timeout, invalid output, unavailable);
 - использовать mock provider в тестах для детерминированных прогонов;
 - учитывать latency / cost / privacy при выборе модели.
+
+!!! takeaway "Capstone checkpoint"
+    **Week 4.** `ModelClient` интегрирован: provider abstraction, structured output validation, mock provider в тестах.
 
 ---
 

@@ -15,6 +15,9 @@
 
 ---
 
+!!! note "Что меняем в Capstone"
+    **Week 2.** Берём baseline из Week 1 и превращаем его в explicit workflow: `planner → analyst → implementer → review` с handoff contract, transition conditions и failure states.
+
 ## Материал
 
 Неделя 1 остановилась там, где кончается фиксированный workflow: следующий шаг известен заранее. Дальше шаги начинают ветвиться, и на каждом развилке кто-то должен решить, какую роль звать и что ей передать. Так появляется handoff — и вместе с ним multi-agent:
@@ -98,6 +101,9 @@ flowchart TD
 
 !!! rule "Rule"
     Выбор топологии и явный handoff применимы к любому workflow, где этапы обмениваются ограниченными данными и имеют проверяемые условия перехода.
+
+!!! takeaway "Capstone checkpoint"
+    **Week 2.** `Topology + handoff contract` готовы: граф capstone с явными transition conditions, failure states и approval boundaries.
 
 ---
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import uuid
 
 import pytest
@@ -10,6 +11,20 @@ from sqlalchemy.pool import StaticPool
 from integration_lab.config import Settings
 from integration_lab.database import create_task, get_task, init_db
 from integration_lab.service import app
+
+
+async def _wait_for_task(ac, task_id: str, timeout: float = 10.0, poll_interval: float = 0.1) -> dict:
+    """Poll GET /tasks/{task_id} until status != 'queued' or timeout expires."""
+    import asyncio
+
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        response = await ac.get(f"/tasks/{task_id}")
+        data = response.json()
+        if data["status"] != "queued":
+            return data
+        await asyncio.sleep(poll_interval)
+    return data
 
 
 class IntegrationTestSettings(Settings):
@@ -24,6 +39,7 @@ class IntegrationTestSettings(Settings):
     demo_owner: str = "demo-owner"
     demo_repo: str = "demo-repo"
     demo_approve_writes: bool = True
+    default_max_retries: int = 3
 
 
 @pytest.fixture(scope="session")
@@ -315,13 +331,7 @@ async def test_demo_toolcall_success(mock_github_api, monkeypatch, db_engine):
         assert create_response.status_code == 202
         task_id = create_response.json()["task_id"]
 
-        import asyncio
-
-        await asyncio.sleep(2)
-
-        get_response = await ac.get(f"/tasks/{task_id}")
-        assert get_response.status_code == 200
-        data = get_response.json()
+        data = await _wait_for_task(ac, task_id)
         assert data["task_id"] == task_id
         assert data["status"] == "completed"
         assert data["started_at"] is not None
@@ -351,12 +361,7 @@ async def test_demo_toolcall_denied_by_policy(mock_github_api, monkeypatch, db_e
         create_response = await ac.post("/tasks", json={"task": "Create an issue in evil repo"})
         task_id = create_response.json()["task_id"]
 
-        import asyncio
-
-        await asyncio.sleep(2)
-
-        get_response = await ac.get(f"/tasks/{task_id}")
-        data = get_response.json()
+        data = await _wait_for_task(ac, task_id)
         assert data["task_id"] == task_id
         # Without approval for a write tool, status should be needs_approval or blocked
         assert data["status"] in ("needs_approval", "blocked", "failed")
@@ -374,12 +379,7 @@ async def test_demo_toolcall_approval_rejected(mock_github_api, monkeypatch, db_
         create_response = await ac.post("/tasks", json={"task": "Create a demo issue"})
         task_id = create_response.json()["task_id"]
 
-        import asyncio
-
-        await asyncio.sleep(2)
-
-        get_response = await ac.get(f"/tasks/{task_id}")
-        data = get_response.json()
+        data = await _wait_for_task(ac, task_id)
         assert data["task_id"] == task_id
         assert data["status"] in ("needs_approval", "blocked")
         # No issue should have been created
@@ -442,3 +442,80 @@ async def test_demo_toolcall_invalid_arguments(mock_github_api, monkeypatch, db_
         assert report.status == "blocked"
         assert report.reason is not None
         assert "invalid" in report.reason.lower() or "empty" in report.reason.lower()
+
+
+@pytest.mark.asyncio
+async def test_needs_approval_does_not_set_completed_at(client, db_session):
+    """needs_approval is NOT a terminal state — completed_at must remain None."""
+    from integration_lab.database import create_execution, create_task, update_task_status
+
+    task = await create_task(db_session, {"task": "Approval test"})
+    await db_session.commit()
+    await create_execution(db_session, task.id, "run-approval")
+    await db_session.commit()
+
+    updated = await update_task_status(db_session, task.id, "needs_approval")
+    await db_session.commit()
+    assert updated.status == "needs_approval"
+    assert updated.completed_at is None, (
+        "needs_approval must NOT set completed_at — it is not a terminal state"
+    )
+
+
+@pytest.mark.asyncio
+async def test_request_id_header(client):
+    """Every response must carry an X-Request-ID header."""
+    response = await client.get("/health")
+    assert response.status_code == 200
+    assert "x-request-id" in response.headers
+    assert len(response.headers["x-request-id"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_async_execution_does_not_block_post(client):
+    """POST /tasks must return 202 immediately, without waiting for runtime to finish."""
+    start = time.monotonic()
+    response = await client.post("/tasks", json={"task": "Async test"})
+    elapsed = time.monotonic() - start
+    assert response.status_code == 202
+    # The POST must return well before any background execution completes
+    assert elapsed < 1.0, f"POST /tasks took {elapsed:.2f}s — should return immediately"
+
+
+@pytest.mark.asyncio
+async def test_retry_backoff_config(client):
+    """IssueApiClient must use exponential backoff between retries."""
+    from integration_lab.client import IssueApiClient
+
+    client_obj = IssueApiClient(
+        base_url="http://example.com",
+        token="test",
+        max_attempts=3,
+        backoff_base=0.1,
+        backoff_max=0.5,
+    )
+    # backoff(1) = 0.1, backoff(2) = 0.2, backoff(3) = 0.4
+    assert client_obj._backoff(1) == 0.1
+    assert client_obj._backoff(2) == 0.2
+    assert client_obj._backoff(3) == 0.4
+    # capped at backoff_max
+    assert client_obj._backoff(10) == 0.5
+
+
+@pytest.mark.asyncio
+async def test_blocked_status_contract(client):
+    """blocked is a distinct terminal state with completed_at=None."""
+    from integration_lab.database import create_execution, create_task, update_task_status
+    from integration_lab.service import get_async_session_maker
+
+    session_maker = await get_async_session_maker()
+    async with session_maker() as session:
+        task = await create_task(session, {"task": "Blocked test"})
+        await session.commit()
+        await create_execution(session, task.id, "run-blocked")
+        await session.commit()
+
+        updated = await update_task_status(session, task.id, "blocked")
+        await session.commit()
+        assert updated.status == "blocked"
+        assert updated.completed_at is None, "blocked must not set completed_at"

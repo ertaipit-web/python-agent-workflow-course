@@ -6,7 +6,7 @@ import pytest
 
 from integration_lab.cli import build_parser, create_report, main
 from integration_lab.issue_api import IssueApi, Token
-from integration_lab.runtime import BLOCKED, DONE, NEEDS_APPROVAL
+from integration_lab.runtime import BLOCKED, COMPLETED, NEEDS_APPROVAL
 from integration_lab.tools import READ_ONLY_SCOPES, WRITE_SCOPES
 
 
@@ -43,7 +43,7 @@ def test_parser_exposes_the_documented_options() -> None:
 def test_read_scenario_completes_without_an_approval(api: IssueApi) -> None:
     report = create_report(api.base_url, scenario="read")
 
-    assert "- Status: `done`" in report
+    assert "- Status: `completed`" in report
     assert "- Granted scopes: issues:read" in report
     assert "The issue API also implements DELETE" in report
     assert "External HTTP calls made by the client: 1." in report
@@ -62,7 +62,7 @@ def test_approved_write_scenario_reaches_the_api(api: IssueApi) -> None:
         api.base_url, scenario="write-approved", approver=lambda call, reason: True
     )
 
-    assert f"- Status: `{DONE}`" in report
+    assert f"- Status: `{COMPLETED}`" in report
     assert api.store.count() == 2
 
 
@@ -96,7 +96,7 @@ def test_cli_approve_writes_flag_performs_the_write(tmp_path: Path, monkeypatch)
 
     assert exit_code == 0
     report = output.read_text(encoding="utf-8")
-    assert f"- Status: `{DONE}`" in report
+    assert f"- Status: `{COMPLETED}`" in report
 
     reopened = IssueApi(
         database=database,

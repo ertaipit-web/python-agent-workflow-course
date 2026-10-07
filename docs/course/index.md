@@ -39,37 +39,39 @@
 
 ## 8 недель
 
+Студент не начинает новый проект в Week 8. Один и тот же **Capstone** развивается от Week 1 до Week 8 — от baseline до production-like сервиса. Подробнее в [архиве эволюции Capstone](capstone-evolution/).
+
 <div class="week-brief">
 <dl>
 <dt>Week 1</dt>
-<dd>Mental model: baseline, workflow vs agent, первый capstone-кандидат</dd>
+<dd>Start Capstone: baseline, problem-definition, выбор задачи</dd>
 <dt>Week 2</dt>
-<dd>Workflows / Handoff: топологии, контракты, граф capstone</dd>
+<dd>Structure Capstone: topology, handoff contracts, граф workflow</dd>
 <dt>Week 3</dt>
-<dd>Context: context engineering, state, JIT-контекст, шаблоны ролей</dd>
+<dd>Context + State в Capstone: path:line evidence, role templates</dd>
 <dt>Week 4</dt>
-<dd>Model / Provider: provider abstraction / ModelClient, structured output & validation, tool calling lifecycle, provider failures & retry, mock provider & testing</dd>
+<dd>ModelClient boundary: provider abstraction, structured output, tool calling</dd>
 <dt>Week 5</dt>
-<dd>Runtime: ModelClient, State, Workflow, HumanGate, RunPolicy, бюджет</dd>
+<dd>Runtime + Policy: State → Role → Transition → RunPolicy + HumanGate</dd>
 <dt>Week 6</dt>
-<dd>Tools / Policy / Security: tool, policy, permission, approval, blast radius</dd>
+<dd>Tools + Permissions: tool registry, allowlist, external integration</dd>
 <dt>Week 7</dt>
-<dd>Evaluation: ground truth, trace, метрики, набор отказов, регрессии</dd>
+<dd>Evaluate Capstone: ground truth, trace, метрики, регрессии</dd>
 <dt>Week 8</dt>
-<dd>Capstone: problem-definition.md, вертикальный срез, business framing</dd>
+<dd>Productionize Capstone: FastAPI, PostgreSQL, Docker, KPI</dd>
 </dl>
 </div>
 
 ```mermaid
 %%{init: {"flowchart": {"useMaxWidth": false, "nodeSpacing": 20, "rankSpacing": 40}, "themeVariables": {"fontSize": "13px"}}}%%
 flowchart TD
-  W1["Week 1\nMental model"] --> W2["Week 2\nWorkflows / Handoff"]
-  W2 --> W3["Week 3\nContext engineering"]
-  W3 --> W4["Week 4\nModel provider"]
-  W4 --> W5["Week 5\nRuntime / Orchestration"]
-  W5 --> W6["Week 6\nTools / Policy / Security"]
-  W6 --> W7["Week 7\nEvaluation / Trace"]
-  W7 --> W8["Week 8\nCapstone"]
+  W1["Week 1\nstart: baseline"] --> W2["Week 2\n+ workflow / handoff"]
+  W2 --> W3["Week 3\n+ context / state"]
+  W3 --> W4["Week 4\n+ ModelClient"]
+  W4 --> W5["Week 5\n+ runtime / policy"]
+  W5 --> W6["Week 6\n+ tools / permissions"]
+  W6 --> W7["Week 7\n+ eval / trace"]
+  W7 --> W8["Week 8\nproduction / KPI"]
   classDef week fill:#f5faf9,stroke:#0d9488,stroke-width:2px;
   class W1,W2,W3,W4,W5,W6,W7,W8 week;
 ```
@@ -78,18 +80,18 @@ flowchart TD
 
 ## Обязательное ядро vs Расширения
 
-В курсе встречаются метки **Обязательное ядро** и **Расширение**. Выполнение расширений не требуется для зачёта основного курса — они для углубления.
+В курсе встречаются метки **Обязательное ядро** и **Расширение**. Выполнение расширений не требуется для зачёта основного курса — они для углубления. Каждая строка ниже — это **Capstone evolution**: студент развивает одну и ту же систему от Week 1 до Week 8, а не начинает новый проект.
 
-| Неделя | Обязательное ядро | Расширение |
-|---|---|---|
-| 1 | baseline + один workflow-кандидат | сравнение топологий, параллельные аналитики |
-| 2 | граф capstone с условиями перехода | реализация второго паттерна |
-| 3 | передача `path:line` evidence | контекстные эксперименты, retrieval |
-| 4 | ModelClient + structured output + tool call + mock test | локальная модель в Ollama/VS Code/Kilo |
-| 5 | Workflow с конечным бюджетом на mock | model routing, сравнение провайдеров |
-| 6 | проверки allowlist, approval, denied-сценарии | сравнение с Kilo/Kodacode, Integration Lab |
-| 7 | trace двух запусков, отчёт baseline vs workflow | retrieval eval, LLM-as-judge |
-| 8 | `problem-definition.md`, вертикальный срез, отчёт | LangGraph, checkpoint/resume, 10+ golden cases |
+| Неделя | Capstone evolution | Обязательное ядро | Расширение |
+|---|---|---|---|
+| 1 | Start Capstone (baseline) | baseline + один workflow-кандидат | сравнение топологий, параллельные аналитики |
+| 2 | Structure Capstone (topology/handoff) | граф capstone с условиями перехода | реализация второго паттерна |
+| 3 | Context + State | передача `path:line` evidence | контекстные эксперименты, retrieval |
+| 4 | ModelClient boundary | ModelClient + structured output + tool call + mock test | локальная модель в Ollama/VS Code/Kilo |
+| 5 | Runtime + Policy | Workflow с конечным бюджетом на mock | model routing, сравнение провайдеров |
+| 6 | Tools + Permissions | проверки allowlist, approval, denied-сценарии | сравнение с Kilo/Kodacode, Integration Lab |
+| 7 | Evaluate Capstone | trace двух запусков, отчёт baseline vs workflow | retrieval eval, LLM-as-judge |
+| 8 | Productionize Capstone | FastAPI + PostgreSQL + Docker + KPI report | LangGraph, checkpoint/resume, 10+ golden cases |
 
 ---
 

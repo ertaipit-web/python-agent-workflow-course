@@ -38,15 +38,13 @@ class Settings(BaseSettings):
     model_api_key: str = Field(default="", validation_alias="MODEL_API_KEY")
 
     # Runtime
-    max_concurrent_tasks: int = 3
-    task_timeout_seconds: int = 300
-    default_max_retries: int = 2
+    default_max_retries: int = Field(default=3, validation_alias="DEFAULT_MAX_RETRIES")
 
     # Production Layer demo mode
     runner_mode: str = Field(default="test", validation_alias="RUNNER_MODE")
     demo_owner: str = Field(default="demo-owner", validation_alias="GITHUB_OWNER")
     demo_repo: str = Field(default="demo-repo", validation_alias="GITHUB_REPO")
-    demo_approve_writes: bool = Field(default=True, validation_alias="DEMO_APPROVE_WRITES")
+    demo_approve_writes: bool = Field(default=False, validation_alias="DEMO_APPROVE_WRITES")
 
 
 @lru_cache

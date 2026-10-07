@@ -15,6 +15,9 @@
 
 ---
 
+!!! note "Что меняем в Capstone"
+    **Week 5.** Формализуем runtime: выносим State → Role → Transition → RunPolicy → HumanGate в отдельные компоненты. RunPolicy задаёт конечный budget, HumanGate останавливает side effects.
+
 ## Материал
 
 К этому моменту у вас есть роли, контракты и измеренный baseline. Чего не хватает — кода, который удерживает состояние между ролями и умеет остановиться при отказе. Компоненты появляются в порядке боли: между вызовами теряется состояние → `State`; провайдер протекает в логику → `ModelClient`; переходы зависят от того, как модель сформулировала текст → `Workflow`; лимиты не соблюдаются → `RunPolicy`; опасное действие выполняется сразу → `HumanGate`. Пишите это на обычном Python, без фреймворка: framework пригодится позже, когда конкретная боль станет очевидной.
@@ -123,6 +126,9 @@ issue → planner → schema validation → человек утверждает 
 
 !!! rule "Rule"
     Явные state, адаптер внешнего сервиса и конечные retry-бюджеты полезны в любом интеграционном workflow.
+
+!!! takeaway "Capstone checkpoint"
+    **Week 5.** `Runtime + policy` работают: State → Role → Transition → RunPolicy → HumanGate, конечный budget на mock.
 
 ---
 

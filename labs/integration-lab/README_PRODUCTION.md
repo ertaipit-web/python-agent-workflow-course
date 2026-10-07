@@ -1,6 +1,8 @@
 # Agent Course Capstone - Production Service
 
-Production Layer для Week 8 capstone: FastAPI сервис, оборачивающий существующий `AgentRuntime` в HTTP API с персистентным состоянием, асинхронным выполнением, Docker и observability.
+Production-oriented educational service для Week 8 Capstone: FastAPI сервис, оборачивающий существующий `AgentRuntime` в HTTP API с персистентным состоянием, асинхронным выполнением, Docker и observability.
+
+**Это не production-ready система** — учебный production-like сервис для демонстрации принципов. Нет HA, масштабирования, production secrets management.
 
 ## Архитектура
 
@@ -35,7 +37,9 @@ cd labs/integration-lab
 # Скопируйте .env.example и заполните значения
 cp .env.example .env
 
-# Обязательно: GITHUB_TOKEN (Personal Access Token с scope: repo)
+# Обязательно: GITHUB_TOKEN (fine-grained Personal Access Token с minimum permissions)
+# Рекомендуется: один token → один repository → minimum permissions
+# Не рекомендуется classic PAT со scope 'repo' — он даёт доступ ко всем репозиториям
 # Опционально: MODEL_PROVIDER, MODEL_NAME для LLM
 ```
 
@@ -184,20 +188,67 @@ GitHub Actions workflow: `.github/workflows/capstone-ci.yml`
 
 ## Связь с курсом
 
-Этот Production Layer применяет все концепции курса:
+Этот Production Layer — продолжение Capstone, а не отдельный проект. Он применяет все концепции курса:
 
-| Неделя | Концепция | Применение здесь |
-|--------|-----------|------------------|
-| Week 1 | Baseline/workflow | Baseline measurement в KPI |
-| Week 2 | Workflows/Handoff | AgentRuntime planner → tools |
-| Week 3 | Context/State | PostgreSQL persistent state |
-| Week 4 | ModelClient | `ScriptedPlanner` — ModelClient не обязателен; deterministic flow |
+| Неделя | Концепция | Применение в Production Layer |
+|--------|-----------|-------------------------------|
+| Week 1 | Baseline, problem-definition | KPI report: baseline (ручной процесс) vs agent |
+| Week 2 | Workflow / Handoff | AgentRuntime: planner → tools → review |
+| Week 3 | Context / State | Persistent State в PostgreSQL, `path:line` evidence в trace |
+| Week 4 | ModelClient | `ModelClient` — архитектурный компонент курса. Production Layer использует deterministic `ScriptedPlanner` для воспроизводимого demo/test flow. Для реального agent workflow подключите LLM-провайдер через ModelClient. |
+| Week 5 | Runtime / Policy / Budget | `RunPolicy` с конечным budget, `HumanGate` для side effects |
+| Week 6 | Tools / Permissions | Tool registry, Policy (allowlist), Permission (scope), Approval |
+| Week 7 | Evaluation / Trace | Trace события, метрики (quality, cost, latency, human intervention) |
+| Week 8 | Production / KPI | FastAPI, PostgreSQL, Docker, observability, KPI report
+
+## Режимы работы
+
+Production Layer имеет три чётко разделённых режима. Не смешивайте их.
+
+### Test / CI
+
+```text
+RUNNER_MODE=test
+mock external API (IssueApi из issue_api.py)
+deterministic planner (ScriptedPlanner с пустым calls=[])
+no real side effects
+```
+
+Задача создаётся, но tool calls не выполняются. Используется в CI и для проверки lifecycle API.
+
+### Demo
+
+```text
+RUNNER_MODE=demo
+deterministic ToolCall(create_issue)
+mock external API или реальный GitHub (опционально)
+DEMO_APPROVE_WRITES=true — auto-approve write operations
+```
+
+Демонстрирует полный vertical slice: POST → ToolCall → Policy → Approval → API → Trace → Result. По умолчанию `DEMO_APPROVE_WRITES=false` — write operations требуют явного подтверждения.
+
+### Real integration
+
+```text
+RUNNER_MODE=demo
+реальный GitHub API (настройте через GITHUB_BASE_URL и GITHUB_TOKEN)
+реальные external side effects
+требует explicit opt-in
+```
+
+Для реальной интеграции используйте fine-grained PAT с minimum permissions: один token → один repository → minimum permissions.
+
+---
 
 ## Demo Mode
 
 По умолчанию Production Layer использует `RUNNER_MODE=test` с `ScriptedPlanner(calls=[])` — задача создаётся, но без выполнения tool calls.
 
 Для демонстрации полного vertical slice включите `RUNNER_MODE=demo`:
+
+```bash
+RUNNER_MODE=demo docker compose -f labs/integration-lab/docker-compose.yml up --build
+```
 
 ```
 POST /tasks → Agent Runtime → ToolCall(create_issue) → Policy → Approval → GitHub API → ToolResult → Trace → Result
@@ -218,9 +269,9 @@ POST /tasks → Agent Runtime → ToolCall(create_issue) → Policy → Approval
 | `RUNNER_MODE` | `test` (пустой planner) или `demo` (create_issue ToolCall) | `test` |
 | `GITHUB_OWNER` | Owner для demo create_issue | `demo-owner` |
 | `GITHUB_REPO` | Repository для demo create_issue | `demo-repo` |
-| `DEMO_APPROVE_WRITES` | Auto-approve write operations в demo mode | `true` |
+| `DEMO_APPROVE_WRITES` | Auto-approve write operations в demo mode | `false` |
 
-## Ограничения (намеренно
+## Ограничения (намеренно)
 
 - ❌ ModelClient (Week 4) не подключён — сервис использует `ScriptedPlanner` как deterministic planner. Для реального agent workflow подключите LLM-провайдер через ModelClient.
 - ❌ Нет Kubernetes, Kafka, RabbitMQ, Celery
@@ -228,8 +279,20 @@ POST /tasks → Agent Runtime → ToolCall(create_issue) → Policy → Approval
 - ❌ Нет Vault/KMS для секретов
 - ❌ Нет production frontend
 - ❌ Нет HA/multi-instance scaling
+- ❌ Нет production-ready security (secrets management, audit logging)
 
-Это **учебный** production-like сервис для демонстрации принципов, не production-ready система.
+Это **production-oriented educational service** для демонстрации принципов, не production-ready система.
+
+## Dev-only credentials
+
+Docker Compose использует **dev-only local credentials**:
+
+```yaml
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+```
+
+Это допустимо для локального стенда, но не является production configuration. Для production используйте отдельные variable files или secrets manager. `.env.example` содержит placeholder'ы — никаких реальных credentials не коммитится.
 
 ## Лицензия
 

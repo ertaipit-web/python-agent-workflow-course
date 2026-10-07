@@ -15,7 +15,7 @@ from integration_lab.tools import (
     validate_arguments,
 )
 
-DONE = "done"
+COMPLETED = "completed"
 NEEDS_APPROVAL = "needs_approval"
 BLOCKED = "blocked"
 REDACTED_ARGUMENTS = frozenset({"token", "secret", "authorization", "password"})
@@ -121,7 +121,7 @@ class AgentRuntime:
     def run(self, task: str) -> RunReport:
         trace: list[TraceEvent] = []
         results: list[Mapping[str, object]] = []
-        status = DONE
+        status = COMPLETED
         reason: str | None = None
         pending: ToolCall | None = None
 

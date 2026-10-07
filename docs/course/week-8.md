@@ -9,11 +9,14 @@
 <dt>Что нового появится</dt>
 <dd>Business framing в `problem-definition.md`, вертикальный срез, Production Layer: API, persistent state, внешняя интеграция, async execution, Docker, observability, CI, KPI.</dd>
 <dt>Что получится в конце</dt>
-<dd>Capstone с отчётом outcome против ожидания + production-ready сервис.</dd>
+<dd>Capstone с отчётом outcome против ожидания + production-oriented сервис.</dd>
 </dl>
 </div>
 
 ---
+
+!!! note "Что меняем в Capstone"
+    **Week 8.** Не начинаем новый проект — productionизируем уже существующий Capstone: FastAPI API, PostgreSQL persistent state, Docker, observability, KPI. Всё, что построено в Week 1–7, переходит в сервис.
 
 ## Сначала business framing
 
@@ -79,7 +82,7 @@ flowchart TD
 Обязательный состав проекта и критерии, по которым он засчитывается, — один список: каждый пункт проверяем, иначе это пожелание.
 
 - заполненный `problem-definition.md`, на который ссылается техническое решение, и ответ, почему выбран agent-подход, а не детерминированная автоматизация;
-- один провайдер за интерфейсом `ModelClient` и конфигурация его модели;
+- один провайдер за интерфейсом `ModelClient` и конфигурация его модели (в Production Layer используется deterministic `ScriptedPlanner` для воспроизводимого demo/test flow; `ModelClient` остаётся архитектурным компонентом курса для реального agent workflow);
 - явные схемы handoff/state и конечные лимиты повторов;
 - read-only analyst и ограниченный implementer;
 - allowlist путей/команд, human approval до записи/исполнения — ни один shell command или file write не выполняется без политики и подтверждения;
@@ -199,10 +202,25 @@ GET  /health          → liveness probe
 ```
 
 **`GET /tasks/{task_id}`** возвращает:
-- `status`: `queued` | `running` | `completed` | `failed` | `needs_approval`
+- `status`: `queued` | `running` | `completed` | `failed` | `needs_approval` | `blocked`
 - `created_at`, `started_at`, `completed_at`
 - `result` / `error`
 - `execution_id` (run_id из trace)
+
+**Контракт статусов:**
+
+| Статус | Значение | `completed_at` |
+|---|---|---|
+| `queued` | Задача создана, выполнение не началось | `null` |
+| `running` | Выполняется в background | `null` |
+| `completed` | Успешно завершено | установлено |
+| `failed` | Ошибка выполнения | установлено |
+| `needs_approval` | Ожидает подтверждения humans | `null` (не terminal) |
+| `blocked` | Ограничение policy (tool не зарегистрирован, repository не в allowlist, не хватает scope, invalid arguments, external error) | `null` |
+
+`blocked` отличается от `failed`:
+- `failed` — системная ошибка (исключение, timeout, provider unavailable);
+- `blocked` — политика отклонила действие до исполнения, причина в `error`/`trace`.
 
 Цель: показать, как agent workflow становится сервисом, доступным другим системам.
 
@@ -260,7 +278,36 @@ task = completed / failed
 Result persisted
 ```
 
-Механизм: **FastAPI `BackgroundTasks`** или `asyncio.create_task()`. Не добавляйте Kafka/RabbitMQ/Celery — цель понять async execution model, а не изучить очереди.
+Механизм: **FastAPI `BackgroundTasks`** или `asyncio.create_task()`. Не добавляйте Kafka/RabbitMQ/Celery — цель понять async execution model, а не изучать очереди.
+
+**Async execution details (#3):**
+
+`execute_agent_task` — async function, но `runtime.run()` вызывает `IssueApiClient`, который использует blocking `urllib.request.urlopen()`. Blocking I/O выносится в thread через `asyncio.to_thread`, чтобы event loop оставался responsive:
+
+```python
+# runtime.run() → IssueApiClient → urllib.request.urlopen() is blocking I/O.
+report = await asyncio.to_thread(runtime.run, task_description)
+```
+
+Это минимальное изменение: не требует async HTTP framework, не меняет архитектуру `IssueApiClient`. Альтернатива — полный переход на `httpx.AsyncClient`, но она увеличивает scope без необходимости для учебного курса.
+
+**Тесты и sleep (#15):**
+
+Интеграционные тесты используют deterministic polling вместо фиксированных `sleep()`:
+
+```python
+# Хорошо: polling с timeout
+deadline = time.monotonic() + timeout
+while time.monotonic() < deadline:
+    if condition:
+        return result
+    await asyncio.sleep(poll_interval)
+
+# Плохо: фиксированный sleep
+await asyncio.sleep(2)  # flaky
+```
+
+`IssueApiClient` использует `time.sleep()` только внутри exponential backoff между retry — это не тест, а часть production logic. — цель понять async execution model, а не изучить очереди.
 
 ---
 
@@ -279,6 +326,24 @@ Secrets (environment variables only)
 - `.env.example` с placeholder'ами
 - `DATABASE_URL`, `GITHUB_TOKEN`, `MODEL_PROVIDER`, `MODEL_NAME`
 - Никаких секретов в коде, промптах, коммитах, `.env.example`
+
+**Безопасность GitHub credentials (#10):**
+
+Рекомендуется **fine-grained personal access token** (не classic PAT):
+
+```text
+one token
+  → one repository
+  → minimum required permissions
+```
+
+Минимальные permissions для Production Layer:
+- **Contents** —读读 (read) для анализа кода
+- **Issues** — read + write для demo create_issue
+
+Classic PAT со scope `repo` не рекомендуется — он даёт доступ ко всем репозиториям, к которым у токена есть доступ. Для учебного курса достаточно одного репозитория с минимальными permissions.
+
+Используйте `.env` (в `.gitignore`) и environment variables — никаких токенов в коде, коммитах или `.env.example`.
 
 Используйте **pydantic-settings** для type-safe config.
 
@@ -342,8 +407,6 @@ task_id
   ↓
 agent execution
   ↓
-model calls
-  ↓
 tool calls
   ↓
 external side effect (GitHub API)
@@ -352,13 +415,19 @@ result
 ```
 
 Минимальное логирование (structured JSON):
-- `request_id` / `task_id`
-- `execution_id` / `run_id`
-- `status`
-- `latency_ms`
-- `tool_calls` (name, arguments_redacted, status)
-- `errors`
-- `model_tokens` / `cost` (если поддерживается)
+
+| Поле | Что это | Где хранится |
+|---|---|---|
+| `task_id` | UUID задачи (PK Task) | Task, Execution, логи |
+| `run_id` | Идентификатор agent run (`run-{uuid}`) | Execution.run_id, TraceEvent |
+| `execution_id` | В API = `run_id` (совпадает с Week 8) | GET /tasks/{id} |
+| `status` | queued / running / completed / failed / needs_approval | Task, Execution |
+| `latency_ms` | Время выполнения | логи |
+| `tool_calls` | Имя, аргументы (redacted), статус | TraceEvent, Execution.trace |
+| `errors` | Текст ошибки и тип | Task.error, Execution.trace |
+| `request_id` | Генерируется middleware для каждого HTTP request; привязан к structlog context. Не сохраняется в БД. | логи |
+
+`request_id` и `run_id` коррелируют: один HTTP request → один `request_id`; один background execution → один `run_id`. Для корреляции request → task используйте `task_id` в логах.
 
 Не добавляйте ELK/Grafana/Prometheus — цель: видеть, что произошло при **одном** production execution.
 
@@ -366,17 +435,36 @@ result
 
 ### Этап 8 — Error Handling
 
-Production service не падает исключением. Обработайте:
+Production service не падает исключением. Ошибки делятся на два уровня:
+
+**Синхронные ошибки** — возвращаются непосредственно в ответ на HTTP request:
 
 | Ошибка | HTTP Status | Response |
 |--------|-------------|----------|
 | Invalid input (validation) | 422 | `{"detail": [...]}` |
 | Task not found | 404 | `{"detail": "Task not found"}` |
-| Provider failure (model) | 502 | `{"detail": "Model provider unavailable"}` |
-| Timeout | 504 | `{"detail": "Execution timeout"}` |
-| Tool failure (external API) | 502 | `{"detail": "External service error"}` |
-| Database error | 500 | `{"detail": "Internal server error"}` |
 | Permission denied | 403 | `{"detail": "Insufficient permissions"}` |
+| Database error | 500 | `{"detail": "Internal server error"}` |
+
+**Ошибки в background execution** — не становятся HTTP-статусом исходного POST. POST `/tasks` всегда возвращает `202 Accepted`. Ошибка сохраняется в Task/Execution, и `GET /tasks/{task_id}` возвращает её в поле `error`:
+
+| Ошибка | Где видна |
+|--------|-----------|
+| Provider failure (model) | `GET /tasks/{id}` → `error` |
+| Timeout | `GET /tasks/{id}` → `error` |
+| Tool failure (external API) | `GET /tasks/{id}` → `error` |
+| Agent execution error | `GET /tasks/{id}` → `error`, `status=failed` |
+
+```text
+POST /tasks
+  → 202 Accepted (task_id, status=queued)
+
+background execution
+  → error persisted in Task/Execution
+
+GET /tasks/{task_id}
+  → current status + error
+```
 
 Различайте:
 - **Expected business error** → 4xx, понятное сообщение, retry не поможет
@@ -466,7 +554,7 @@ Business impact (time saved, automation rate)
 
 ## Production Checklist
 
-В конце Week 8 студент проходит checklist:
+В конце Week 8 студент проходит checklist. Это **production-oriented educational service** — не production-ready система.
 
 ```text
 [ ] API: POST /tasks, GET /tasks/{id}, GET /health
@@ -475,8 +563,8 @@ Business impact (time saved, automation rate)
 [ ] Permissions: allowlist + scopes + approval
 [ ] Secrets: .env, pydantic-settings, no secrets in code
 [ ] Async execution: BackgroundTasks / asyncio
-[ ] Retries: idempotent + backoff
-[ ] Structured logs: JSON, request_id, trace correlation
+[ ] Retries: exponential backoff (idempotent reads), no automatic retry for writes
+[ ] Structured logs: JSON, task_id, run_id, execution_id, trace correlation
 [ ] Tracing: end-to-end execution trace
 [ ] Evaluation: quality + cost + latency metrics
 [ ] Docker: docker-compose up works
@@ -484,7 +572,69 @@ Business impact (time saved, automation rate)
 [ ] KPI: baseline vs agent report
 ```
 
+**Режимы работы:**
+
+| Режим | RUNNER_MODE | External API | Side effects |
+|---|---|---|---|
+| Test / CI | `test` | mock | none |
+| Demo | `demo` | mock or real (opt-in) | deterministic ToolCall, `DEMO_APPROVE_WRITES` |
+| Real integration | `demo` + real token | real GitHub | explicit opt-in required |
+
+**Демонстрация:**
+
+```bash
+# Test mode (default, safe)
+docker compose -f labs/integration-lab/docker-compose.yml up --build
+
+# Demo mode (deterministic ToolCall through Policy → Approval → API)
+RUNNER_MODE=demo docker compose -f labs/integration-lab/docker-compose.yml up --build
+```
+
 Это не новые концепции — итоговый checklist всего курса.
+
+---
+
+## Retry / backoff (#8)
+
+Production Layer использует **exponential backoff с jitter** в `IssueApiClient`:
+
+```text
+backoff(attempt) = min(backoff_base × 2^(attempt-1), backoff_max)
+```
+
+Для `DEFAULT_MAX_RETRIES=3`: задержки ~0.5s, 1s, 2s (каприруются на `backoff_max=4s`).
+
+**Явно разделены retryable и non-retryable ошибки:**
+
+| Ошибка | Retryable? | Поведение |
+|---|---|---|
+| `5xx` на чтении (GET) | Да | Повтор с backoff в пределах бюджета, затем `blocked` |
+| Connection reset на чтении | Да | Повтор с backoff |
+| `5xx` на записи (POST/PATCH) | Нет | `WriteOutcomeUnknownError` — эффект мог примениться, повтор не выполняется автоматически |
+| Connection lost на записи | Нет | `WriteOutcomeUnknownError` — повтор не выполняется |
+| Timeout на чтении | Да | Повтор с backoff, затем `TransportTimeoutError` |
+| Timeout на записи | Нет | `WriteOutcomeUnknownError` — запрос отправлен, эффект мог примениться |
+| `401` / `403` | Нет | `AuthenticationError` / `PermissionDeniedError` — тихих повторов нет |
+| `404` | Нет | `NotFoundError` |
+| `400` / `409` / `413` / `422` | Нет | `ValidationRejectedError` |
+
+**Правило:** повторы разрешены только для **идемпотентных чтений** (GET). Записи (POST/PATCH/DELETE) не повторяются автоматически — это защищает от дубликатов.
+
+---
+
+## Резюме: что мы делаем в Week 8 и что уже сделано раньше
+
+Capstone — не новый проект, а **production-ization** уже существующей системы. Week 8 фокусируется на том, что остаётся после Week 1–7:
+
+| Фокус Week 8 | Уже сделано в Week 1–7 (не объясняем заново) |
+|---|---|
+| **Business delivery** — service boundary, API, async execution | Workflow, handoff, runtime — Week 2, 5 |
+| **Persistence** — PostgreSQL, SQLAlchemy, миграции | State, context — Week 3, 5 |
+| **Packaging** — Docker, Docker Compose, CI | Mock provider, tests — Week 4, 7 |
+| **Observability** — structured logs, traces, KPI | Trace, eval, метрики — Week 7 |
+| **KPI report** — baseline vs agent, business impact | Baseline, comparison — Week 1, 7 |
+
+Tools, permissions, tracing, ModelClient, state — всё это уже встроено в Capstone. В Week 8 мы не объясняем их заново, а проверяем, что они работают в production-контексте.
 
 ---
 
@@ -516,6 +666,9 @@ Business impact (time saved, automation rate)
 
 Необязательно подключите LangGraph и перенесите в него тот же workflow. Сравните сложность state/checkpoint, наблюдаемость и удобство тестирования с простым Python-кодом. Не переписывайте проект на framework, если это не решает конкретную проблему.
 {: .course-note .course-note--extension }
+
+!!! takeaway "Capstone checkpoint"
+    **Week 8.** `Production-like service + KPI report` готовы: FastAPI, PostgreSQL, Docker, observability, бизнес-отчёт.
 
 ---
 

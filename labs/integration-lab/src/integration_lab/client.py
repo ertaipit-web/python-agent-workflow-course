@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import socket
+import time
 from collections.abc import Sequence
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -18,7 +19,9 @@ from integration_lab.errors import (
 )
 
 DEFAULT_TIMEOUT_SECONDS = 2.0
-DEFAULT_MAX_ATTEMPTS = 2
+DEFAULT_MAX_ATTEMPTS = 3
+DEFAULT_BACKOFF_BASE_SECONDS = 0.5
+DEFAULT_BACKOFF_MAX_SECONDS = 4.0
 MAX_TITLE_CHARACTERS = 200
 
 
@@ -30,6 +33,8 @@ class IssueApiClient:
         *,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
         max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+        backoff_base: float = DEFAULT_BACKOFF_BASE_SECONDS,
+        backoff_max: float = DEFAULT_BACKOFF_MAX_SECONDS,
     ) -> None:
         if not base_url.startswith(("http://", "https://")):
             raise ValueError("base_url must be an http or https URL")
@@ -39,10 +44,16 @@ class IssueApiClient:
             raise ValueError("timeout must be positive")
         if max_attempts < 1:
             raise ValueError("max_attempts must be at least 1")
+        if backoff_base <= 0:
+            raise ValueError("backoff_base must be positive")
+        if backoff_max < backoff_base:
+            raise ValueError("backoff_max must be >= backoff_base")
         self.base_url = base_url.rstrip("/")
         self._token = token
         self._timeout = timeout
         self._max_attempts = max_attempts
+        self._backoff_base = backoff_base
+        self._backoff_max = backoff_max
         self.call_count = 0
 
     def list_issues(
@@ -119,6 +130,7 @@ class IssueApiClient:
             except HTTPError as error:
                 mapped = _map_http_error(error, attempts=attempt)
                 if isinstance(mapped, ServerError) and idempotent and attempt < self._max_attempts:
+                    time.sleep(self._backoff(attempt))
                     continue
                 raise mapped from None
             except TimeoutError as error:
@@ -128,6 +140,7 @@ class IssueApiClient:
                     ) from error
                 if attempt == self._max_attempts:
                     raise TransportTimeoutError(f"{method} {path} timed out") from error
+                time.sleep(self._backoff(attempt))
             except URLError as error:
                 if isinstance(error.reason, (TimeoutError, socket.timeout)):
                     if not idempotent:
@@ -136,15 +149,21 @@ class IssueApiClient:
                         ) from error
                     if attempt == self._max_attempts:
                         raise TransportTimeoutError(f"{method} {path} timed out") from error
+                    time.sleep(self._backoff(attempt))
                 elif not idempotent:
                     raise WriteOutcomeUnknownError(
                         f"{method} {path} lost the connection after the request was sent"
                     ) from error
                 elif attempt < self._max_attempts:
-                    continue
+                    time.sleep(self._backoff(attempt))
                 else:
                     raise ServerError(f"{method} {path} failed: {error.reason}", attempts=attempt)
         raise ServerError(f"{method} {path} failed", attempts=self._max_attempts)
+
+    def _backoff(self, attempt: int) -> float:
+        """Exponential backoff with jitter, capped at backoff_max."""
+        delay = min(self._backoff_base * (2 ** (attempt - 1)), self._backoff_max)
+        return delay
 
 
 def _map_http_error(error: HTTPError, *, attempts: int) -> Exception:

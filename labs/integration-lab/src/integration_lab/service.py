@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
 import time
@@ -24,7 +25,15 @@ from integration_lab.database import (
     update_execution,
     update_task_status,
 )
-from integration_lab.runtime import AgentRuntime, RunReport, ScriptedPlanner, ToolCall
+from integration_lab.runtime import (
+    BLOCKED,
+    COMPLETED,
+    NEEDS_APPROVAL,
+    AgentRuntime,
+    RunReport,
+    ScriptedPlanner,
+    ToolCall,
+)
 
 structlog.configure(
     processors=[
@@ -108,7 +117,7 @@ def get_runtime() -> AgentRuntime:
         base_url=settings.github_base_url,
         token=settings.github_token,
         timeout=2.0,
-        max_attempts=2,
+        max_attempts=settings.default_max_retries,
     )
 
     from integration_lab.runtime import Policy
@@ -170,7 +179,9 @@ async def execute_agent_task(
         runtime.run_id = run_id
         runtime.node_id = "issue_agent"
 
-        report = runtime.run(task_description)
+        # Run blocking runtime in a thread to keep the event loop responsive.
+        # runtime.run() → IssueApiClient → urllib.request.urlopen() is blocking I/O.
+        report = await asyncio.to_thread(runtime.run, task_description)
 
         trace_events = [
             {
@@ -189,14 +200,14 @@ async def execute_agent_task(
         result_data: dict[str, Any] | None = None
         error_msg: str | None = None
 
-        if report.status == "completed" or report.status == "done":
+        if report.status == COMPLETED:
             result_data = {
                 "status": "completed",
                 "results": [dict(r) for r in report.results],
                 "trace": trace_events,
             }
             final_status = "completed"
-        elif report.status == "needs_approval":
+        elif report.status == NEEDS_APPROVAL:
             result_data = {
                 "status": "needs_approval",
                 "pending_approval": {
@@ -206,6 +217,9 @@ async def execute_agent_task(
                 "trace": trace_events,
             }
             final_status = "needs_approval"
+        elif report.status == BLOCKED:
+            error_msg = report.reason or "Agent execution blocked"
+            final_status = "blocked"
         else:
             error_msg = report.reason or "Agent execution failed"
             final_status = report.status
@@ -305,6 +319,17 @@ async def get_task_endpoint(task_id: str):
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     return HealthResponse(service=settings.service_name, timestamp=datetime.now(UTC))
+
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    """Attach a request_id to every request and propagate it into structlog context."""
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(request_id=request_id)
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 @app.exception_handler(HTTPException)

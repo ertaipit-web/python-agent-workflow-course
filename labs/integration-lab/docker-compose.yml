@@ -1,5 +1,9 @@
 # Docker Compose for Agent Course Capstone Production Environment
-# Run with: docker compose up
+# Run with: docker compose -f labs/integration-lab/docker-compose.yml up --build
+#
+# Default mode: RUNNER_MODE=test — no tool calls, task lifecycle only.
+# For full demo flow (real ToolCall through Policy → Approval → GitHub API):
+#   RUNNER_MODE=demo docker compose -f labs/integration-lab/docker-compose.yml up --build
 
 services:
   api:
@@ -22,9 +26,12 @@ services:
       - MODEL_NAME=qwen3:8b
       - MODEL_BASE_URL=http://host.docker.internal:11434/v1
       - MODEL_API_KEY=
-      - MAX_CONCURRENT_TASKS=3
-      - TASK_TIMEOUT_SECONDS=300
-      - DEFAULT_MAX_RETRIES=2
+      - DEFAULT_MAX_RETRIES=3
+      # Demo mode: off by default for safety. Set RUNNER_MODE=demo to enable real ToolCall.
+      - RUNNER_MODE=test
+      - GITHUB_OWNER=demo-owner
+      - GITHUB_REPO=demo-repo
+      - DEMO_APPROVE_WRITES=false
     depends_on:
       db:
         condition: service_healthy
