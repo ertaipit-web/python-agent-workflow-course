@@ -20,6 +20,7 @@ nav = [
 
 [project.markdown_extensions]
 attr_list = {}
+admonition = {}
 pymdownx.superfences.custom_fences = [
   { name = "mermaid", class = "mermaid" },
 ]
