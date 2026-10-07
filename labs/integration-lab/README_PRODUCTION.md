@@ -29,18 +29,63 @@ Agent Runtime (Integration Lab)
 
 ## Быстрый старт
 
-### 1. Подготовка окружения
+### Windows PowerShell
 
-```bash
-cd labs/integration-lab
+Все команды начинаются из корня репозитория. Подготовьте локальное окружение и `.env`, затем запустите сервис с PostgreSQL через Compose:
 
-# Скопируйте .env.example и заполните значения
-cp .env.example .env
+```powershell
+Set-Location .\labs\integration-lab
+if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+Set-Location ..\..
+docker compose -f .\labs\integration-lab\docker-compose.yml up --build
 ```
 
-**По умолчанию `RUNNER_MODE=test`** — не требует `GITHUB_TOKEN`. Задача создаётся, но tool calls не выполняются.
+Для локальной разработки (сервис запускается в терминале, PostgreSQL — в Docker):
 
-Для demo/production режимов нужен **fine-grained Personal Access Token**:
+```powershell
+docker compose -f .\labs\integration-lab\docker-compose.yml up -d db
+Set-Location .\labs\integration-lab
+.\.venv\Scripts\python.exe -m pytest .\tests -v
+.\.venv\Scripts\python.exe -m integration_lab.service
+```
+
+### macOS
+
+Все команды начинаются из корня репозитория:
+
+```bash
+cd ./labs/integration-lab
+if [ ! -x .venv/bin/python ]; then python3 -m venv .venv; fi
+./.venv/bin/python -m pip install -e ".[dev]"
+if [ ! -f .env ]; then cp .env.example .env; fi
+cd ../..
+docker compose -f ./labs/integration-lab/docker-compose.yml up --build
+```
+
+Для локальной разработки, в отдельном терминале из корня репозитория:
+
+```bash
+docker compose -f ./labs/integration-lab/docker-compose.yml up -d db
+cd ./labs/integration-lab
+./.venv/bin/python -m pytest ./tests -v
+./.venv/bin/python -m integration_lab.service
+```
+
+### Linux
+
+Linux использует те же команды, что и macOS (Bash/`zsh`). Для локального запуска сначала дождитесь, пока PostgreSQL из Compose станет healthy; тесты используют SQLite in-memory и могут выполняться без PostgreSQL.
+
+После запуска Compose сервис доступен по адресу `http://localhost:8000`. Остановить foreground Compose можно `Ctrl+C`. Чтобы удалить созданные Compose-контейнеры и сеть, из корня выполните одинаковую на всех ОС команду:
+
+```bash
+docker compose -f labs/integration-lab/docker-compose.yml down
+```
+
+**По умолчанию `RUNNER_MODE=test`** — не требует `GITHUB_TOKEN`. Задача создаётся, но tool calls не выполняются. Файл `.env` создаётся из `.env.example`; заполняйте только необходимые значения.
+
+Для явной интеграции с GitHub нужен **fine-grained Personal Access Token**:
 - один token → один repository → minimum permissions
 - Issues: read/write (read для list/get, write для create/close)
 - Contents: **не требуется** — этот flow работает только через Issues
@@ -48,32 +93,6 @@ cp .env.example .env
 - Избегайте classic PAT со scope `repo` — он даёт доступ ко всем репозиториям
 
 `ModelClient` — архитектурная часть Week 4, но текущий deterministic Production Layer использует `ScriptedPlanner` и не подключает LLM.
-
-### 2. Запуск через Docker Compose (рекомендуется)
-
-```bash
-# Из корня репозитория
-docker compose -f labs/integration-lab/docker-compose.yml up --build
-```
-
-Сервис будет доступен на `http://localhost:8000`
-
-### 3. Локальный запуск (для разработки)
-
-```bash
-cd labs/integration-lab
-
-# Установите зависимости
-pip install -e ".[dev]"
-
-# Запустите PostgreSQL (отдельно)
-# docker run -d --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:16-alpine
-
-# Запустите сервис
-agent-service
-# или
-python -m integration_lab.service
-```
 
 ## API Endpoints
 
@@ -164,29 +183,43 @@ Liveness probe.
 
 ## Тесты
 
-```bash
-cd labs/integration-lab
-pip install -e ".[dev]"
+Запускайте проверки из каталога `labs/integration-lab` после установки зависимостей из блока быстрого старта. Тесты используют SQLite in-memory и не требуют PostgreSQL.
 
-# pytest использует SQLite in-memory (не требует PostgreSQL)
-pytest tests/ -v
+**Windows PowerShell**
 
-# CI запускает pytest с PostgreSQL service
-# Docker/demo использует PostgreSQL через docker-compose
+```powershell
+.\.venv\Scripts\python.exe -m pytest .\tests -v
 ```
 
-## Docker
+**macOS / Linux**
 
 ```bash
-# Build
+./.venv/bin/python -m pytest ./tests -v
+```
+
+Тесты должны завершиться без ошибок; CI использует отдельный PostgreSQL service.
+
+## Docker build и run
+
+Docker CLI принимает одинаковые команды на Windows PowerShell, macOS и Linux. Из корня репозитория соберите образ:
+
+```bash
 docker build -t agent-course-capstone -f labs/integration-lab/Dockerfile labs/integration-lab
-
-# Run (требует PostgreSQL)
-docker run -p 8000:8000 \
-  -e DATABASE_URL=postgresql+psycopg://postgres:postgres@host.docker.internal:5432/agent_course \
-  -e GITHUB_TOKEN=your_token \
-  agent-course-capstone
 ```
+
+Команда создаёт образ `agent-course-capstone`. Для запуска сначала поднимите PostgreSQL через Compose. **Windows PowerShell и macOS (Docker Desktop):**
+
+```bash
+docker run -p 8000:8000 -e DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/agent_course agent-course-capstone
+```
+
+Предыдущая команда подходит для Windows PowerShell и macOS с Docker Desktop. На Linux используйте вариант с дополнительным host mapping:
+
+```bash
+docker run --add-host=host.docker.internal:host-gateway -p 8000:8000 -e DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:5432/agent_course agent-course-capstone
+```
+
+Для тестового режима `GITHUB_TOKEN` не нужен. Чтобы остановить контейнер, нажмите `Ctrl+C` в терминале.
 
 ## CI/CD
 
@@ -263,11 +296,35 @@ Production Layer не подключает LLM-провайдер к Production 
 
 По умолчанию Production Layer использует `RUNNER_MODE=test` с `ScriptedPlanner(calls=[])` — задача создаётся, но без выполнения tool calls.
 
-Для демонстрации полного vertical slice включите `RUNNER_MODE=demo`:
+Compose-конфигурация намеренно фиксирует `RUNNER_MODE=test`, поэтому переменная, заданная перед `docker compose`, не переключит сервис в demo. Чтобы запустить demo локально, отредактируйте `.env` в `labs/integration-lab` и задайте:
+
+```dotenv
+RUNNER_MODE=demo
+DEMO_APPROVE_WRITES=true
+GITHUB_TOKEN=your_fine_grained_token
+GITHUB_OWNER=your_owner
+GITHUB_REPO=your_repository
+```
+
+Это разрешит сервису отправить реальный `create_issue` в указанный GitHub repository. Используйте отдельный учебный репозиторий и минимальные token permissions; не включайте auto-approval, если не готовы к записи. Затем запустите PostgreSQL через Compose и API локально:
+
+**Windows PowerShell** (из корня репозитория):
+
+```powershell
+docker compose -f .\labs\integration-lab\docker-compose.yml up -d db
+Set-Location .\labs\integration-lab
+.\.venv\Scripts\python.exe -m integration_lab.service
+```
+
+**macOS / Linux** (из корня репозитория):
 
 ```bash
-RUNNER_MODE=demo docker compose -f labs/integration-lab/docker-compose.yml up --build
+docker compose -f ./labs/integration-lab/docker-compose.yml up -d db
+cd ./labs/integration-lab
+./.venv/bin/python -m integration_lab.service
 ```
+
+Обычный быстрый старт через `docker compose ... up --build` остаётся безопасным test mode и не вызывает GitHub API.
 
 ```
 POST /tasks → Agent Runtime → ToolCall(create_issue) → Policy → Approval → GitHub API → ToolResult → Trace → Result

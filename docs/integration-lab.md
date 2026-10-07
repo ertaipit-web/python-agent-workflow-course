@@ -33,12 +33,33 @@ flowchart TD
 
 ## Что реализовано
 
+### Windows PowerShell
+
+Из корня репозитория установите зависимости, выполните тесты и запустите сценарии:
+
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".\labs\integration-lab[dev]"
+.\.venv\Scripts\python.exe -m pytest .\labs\integration-lab\tests
 .\.venv\Scripts\python.exe -m integration_lab --scenario read
 .\.venv\Scripts\python.exe -m integration_lab --scenario write-denied
 .\.venv\Scripts\python.exe -m integration_lab --scenario write-approved --approve-writes
+.\.venv\Scripts\python.exe -m integration_lab --scenario delete
 ```
+
+### macOS / Linux
+
+Из корня репозитория выполните те же команды с POSIX-путями:
+
+```bash
+./.venv/bin/python -m pip install -e "./labs/integration-lab[dev]"
+./.venv/bin/python -m pytest ./labs/integration-lab/tests
+./.venv/bin/python -m integration_lab --scenario read
+./.venv/bin/python -m integration_lab --scenario write-denied
+./.venv/bin/python -m integration_lab --scenario write-approved --approve-writes
+./.venv/bin/python -m integration_lab --scenario delete
+```
+
+Создайте `.venv` по инструкции в разделе [учебные репозитории курса](lab-repository.md), если окружение ещё не настроено. Тесты должны пройти; каждый сценарий локально запускает временный API и печатает отчёт в терминал.
 
 | Слой | Ключевые решения |
 |---|---|

@@ -6,9 +6,15 @@
 
 Материалы курса оформлены как Zensical-сайт.
 
-## Локальный просмотр в Windows
+### 💻 Команды для трёх ОС
 
-Не открывайте `site/course/` как `file://...`: при стандартной настройке Zensical используются URL страниц вида `/course/`, которым нужен HTTP-сервер. Из корня проекта запустите preview-сервер в PowerShell:
+В примерах явно указано, для какого shell предназначена команда: Windows — PowerShell; macOS — Terminal (`zsh`/`bash`); Linux — Bash/`zsh`. Если команды для macOS и Linux одинаковые, они объединены в один блок. Python-команды запускайте интерпретатором виртуального окружения `.venv`, без обязательной активации. Базовые команды Git, Docker Compose и Ollama CLI без shell-specific переменных/путей одинаковы для всех трёх ОС; отличия в путях, переменных окружения и Docker host mapping обозначены отдельно.
+
+## Локальный просмотр
+
+Не открывайте `site/course/` как `file://...`: при стандартной настройке Zensical используются URL страниц вида `/course/`, которым нужен HTTP-сервер. Выполняйте команды из корня проекта в shell вашей ОС:
+
+### Windows PowerShell
 
 ```powershell
 if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
@@ -20,15 +26,47 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) { python -m venv .venv }
 .\.venv\Scripts\python.exe -m zensical serve
 ```
 
-Оставьте терминал открытым и перейдите по адресу **http://localhost:8000/**. Основной курс доступен по адресу **http://localhost:8000/course/**. Остановить сервер можно сочетанием `Ctrl+C`.
+### macOS
+
+```bash
+if [ ! -x .venv/bin/python ]; then python3 -m venv .venv; fi
+./.venv/bin/python -m pip install "zensical==0.0.67"
+./.venv/bin/python -m pip install -e "./labs/starter-repo[dev]"
+./.venv/bin/python -m pip install -e "./labs/repo-triage[dev]"
+./.venv/bin/python -m pip install -e "./labs/rag-lab[dev]"
+./.venv/bin/python -m pip install -e "./labs/integration-lab[dev]"
+./.venv/bin/python -m zensical serve
+```
+
+### Linux
+
+```bash
+if [ ! -x .venv/bin/python ]; then python3 -m venv .venv; fi
+./.venv/bin/python -m pip install "zensical==0.0.67"
+./.venv/bin/python -m pip install -e "./labs/starter-repo[dev]"
+./.venv/bin/python -m pip install -e "./labs/repo-triage[dev]"
+./.venv/bin/python -m pip install -e "./labs/rag-lab[dev]"
+./.venv/bin/python -m pip install -e "./labs/integration-lab[dev]"
+./.venv/bin/python -m zensical serve
+```
+
+Оставьте терминал открытым и перейдите по адресу **http://localhost:8000/**. Основной курс доступен по адресу **http://localhost:8000/course/**. Остановить сервер можно сочетанием `Ctrl+C` (на macOS также работает `Control+C`).
 
 Чтобы только собрать статический сайт без запуска preview-сервера:
+
+#### Windows PowerShell
 
 ```powershell
 .\.venv\Scripts\python.exe -m zensical build --strict
 ```
 
-Если виртуальное окружение `.venv` уже настроено, не создавайте его заново; установите в него только отсутствующие зависимости.
+#### macOS / Linux
+
+```bash
+./.venv/bin/python -m zensical build --strict
+```
+
+Если виртуальное окружение `.venv` уже настроено, не создавайте его заново; установите в него только отсутствующие зависимости. Успешная команда сборки создаёт сайт в `site/`; preview-сервер выводит доступный локальный URL.
 
 Готовый сайт создаётся в `site/`. Эта директория генерируется командой build и не является исходником документации. Для локального просмотра используйте `zensical serve`, а не открытие файлов из `site/` напрямую.
 
@@ -43,7 +81,7 @@ Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) прове
 3. Подключите local repo к GitHub remote и отправьте ветку `main`.
 4. Проверьте выполнение workflow во вкладке **Actions**. После успешного deploy URL сайта появится в deployment `github-pages`.
 
-Опубликованный сайт: **[ertaipit-web.github.io/python-agent-workflow-course](https://ertaipit-web.github.io/python-agent-workflow-course/)**. Локальную сборку можно проверить командой `zensical build --strict`.
+Опубликованный сайт: **[ertaipit-web.github.io/python-agent-workflow-course](https://ertaipit-web.github.io/python-agent-workflow-course/)**. Локальную сборку можно проверить командой `zensical build --strict`, указанной выше для вашего shell.
 
 ## Структура
 

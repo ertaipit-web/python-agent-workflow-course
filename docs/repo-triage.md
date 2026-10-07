@@ -6,10 +6,25 @@ Repo Triage — вторая, более реалистичная лаборат
 
 Запуск локальной CLI-утилиты строит Markdown-отчёт по двум входам: каталогу с issue и корню анализируемого репозитория.
 
+### Windows PowerShell
+
+Из корня репозитория:
+
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".\labs\repo-triage[dev]"
 .\.venv\Scripts\python.exe -m repo_triage --repo .\labs\repo-triage\sample-repo --issues .\labs\repo-triage\issues
 ```
+
+### macOS / Linux
+
+Из корня репозитория:
+
+```bash
+./.venv/bin/python -m pip install -e "./labs/repo-triage[dev]"
+./.venv/bin/python -m repo_triage --repo ./labs/repo-triage/sample-repo --issues ./labs/repo-triage/issues
+```
+
+Создайте `.venv` по инструкции в разделе [учебные репозитории курса](lab-repository.md), если окружение ещё не настроено. После запуска отчёт появится в терминале; он содержит инвентарь и кандидатов по каждому issue.
 
 Отчёт содержит инвентарь Python-файлов и определённых в них классов/функций, список Markdown-файлов, тип задачи и статус triage. Для bug/test/docs утилита ранжирует небольшой список файлов-кандидатов по ключевым словам из заголовка и типу задачи.
 

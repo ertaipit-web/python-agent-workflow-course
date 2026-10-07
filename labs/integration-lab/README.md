@@ -16,22 +16,37 @@ POST /repos/…/issues   →   IssueApiClient    →   create_issue    →   pla
 
 - Python 3.11 или новее
 
-Из каталога `labs/integration-lab`:
+Из каталога `labs/integration-lab` создайте окружение, установите пакет и запустите тесты.
+
+### Windows PowerShell
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m pytest
-```
-
-Четыре сценария, каждый стартует локальный API на случайном порту и печатает отчёт:
-
-```powershell
 .\.venv\Scripts\python.exe -m integration_lab --scenario read
 .\.venv\Scripts\python.exe -m integration_lab --scenario write-denied
 .\.venv\Scripts\python.exe -m integration_lab --scenario write-approved --approve-writes
 .\.venv\Scripts\python.exe -m integration_lab --scenario delete
 ```
+
+### macOS
+
+```bash
+python3 -m venv .venv
+./.venv/bin/python -m pip install -e ".[dev]"
+./.venv/bin/python -m pytest
+./.venv/bin/python -m integration_lab --scenario read
+./.venv/bin/python -m integration_lab --scenario write-denied
+./.venv/bin/python -m integration_lab --scenario write-approved --approve-writes
+./.venv/bin/python -m integration_lab --scenario delete
+```
+
+### Linux
+
+В Linux используются те же команды, что и в разделе macOS.
+
+Каждый сценарий запускает локальный API на случайном порту и печатает отчёт в терминал. `read` только читает; `write-denied` и `delete` демонстрируют отказ; `write-approved` разрешает учебную запись через `--approve-writes`.
 
 Флаг `--approve-writes` отвечает за human gate: он выдаёт одобрение на действия с побочным эффектом. Без него `--scenario write-approved` останавливается на том же месте, что и `write-denied`, — так видно, что approval действительно является условием записи, а не декорацией.
 

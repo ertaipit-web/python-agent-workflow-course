@@ -15,5 +15,5 @@
 
 - Разрешено менять `src/taskboard/core.py` и `tests/test_core.py`.
 - Публичная сигнатура `filter_tasks` не меняется.
-- Проверка: `python -m pytest`.
+- Проверка: запустите pytest по platform-specific команде из [README проекта](../README.md).
 - Сначала добавьте тесты на `"OPEN"` и `" open "`, запустите их на baseline и сохраните ожидаемое падение.

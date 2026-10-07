@@ -8,27 +8,51 @@ Repo Triage не вызывает модели, не изменяет исход
 
 - Python 3.11 или новее
 
-Из каталога `labs/repo-triage`:
+Из каталога `labs/repo-triage` создайте окружение, установите пакет и запустите тесты.
+
+### Windows PowerShell
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m pytest
-```
-
-После установки CLI запустите её через скрипт виртуального окружения:
-
-```powershell
 .\.venv\Scripts\repo-triage.exe --repo .\sample-repo --issues .\issues
 ```
 
-В корневом окружении курса:
+### macOS
+
+```bash
+python3 -m venv .venv
+./.venv/bin/python -m pip install -e ".[dev]"
+./.venv/bin/python -m pytest
+./.venv/bin/repo-triage --repo ./sample-repo --issues ./issues
+```
+
+### Linux
+
+В Linux используются те же команды, что и в разделе macOS. Установленная CLI должна вывести Markdown-отчёт в терминал.
+
+### Запуск из корневого окружения курса
+
+В следующих командах предполагается текущий каталог — корень репозитория курса. Вариант через `python -m repo_triage` не зависит от расположения установленного console-script.
+
+#### Windows PowerShell
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".\labs\repo-triage[dev]"
 .\.venv\Scripts\python.exe -m repo_triage --repo .\labs\repo-triage\sample-repo --issues .\labs\repo-triage\issues
 .\.venv\Scripts\python.exe -m repo_triage --repo .\labs\repo-triage\sample-repo --issues .\labs\repo-triage\issues --output .\triage-report.md
 ```
+
+#### macOS / Linux
+
+```bash
+./.venv/bin/python -m pip install -e "./labs/repo-triage[dev]"
+./.venv/bin/python -m repo_triage --repo ./labs/repo-triage/sample-repo --issues ./labs/repo-triage/issues
+./.venv/bin/python -m repo_triage --repo ./labs/repo-triage/sample-repo --issues ./labs/repo-triage/issues --output ./triage-report.md
+```
+
+Обычный запуск выводит отчёт в терминал; команда с `--output` сохраняет его в `triage-report.md` в текущем каталоге. Создайте корневое `.venv` по инструкции в [README курса](../../README.md), если оно ещё не настроено.
 
 ## Формат issue
 

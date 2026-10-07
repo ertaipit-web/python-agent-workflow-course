@@ -18,7 +18,9 @@ User
 
 - Python 3.11 или новее
 
-Из каталога `labs/rag-lab`:
+Из каталога `labs/rag-lab` создайте окружение, установите пакет и запустите тесты.
+
+### Windows PowerShell
 
 ```powershell
 python -m venv .venv
@@ -26,19 +28,41 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-В корневом окружении курса:
+### macOS
+
+```bash
+python3 -m venv .venv
+./.venv/bin/python -m pip install -e ".[dev]"
+./.venv/bin/python -m pytest
+```
+
+### Linux
+
+В Linux используются те же команды, что и в разделе macOS.
+
+### Запуск из корневого окружения курса
+
+Следующие команды выполняются из корня репозитория курса. Если окружение ещё не создано, используйте [инструкции курса](../../README.md).
+
+#### Windows PowerShell
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".\labs\rag-lab[dev]"
 .\.venv\Scripts\python.exe -m pytest .\labs\rag-lab\tests
 .\.venv\Scripts\python.exe -m rag_lab --corpus .\labs\rag-lab\corpus --cases .\labs\rag-lab\questions.json
-```
-
-Один вопрос вместо всего набора:
-
-```powershell
 .\.venv\Scripts\python.exe -m rag_lab --corpus .\labs\rag-lab\corpus --cases .\labs\rag-lab\questions.json --case outside-the-corpus
 ```
+
+#### macOS / Linux
+
+```bash
+./.venv/bin/python -m pip install -e "./labs/rag-lab[dev]"
+./.venv/bin/python -m pytest ./labs/rag-lab/tests
+./.venv/bin/python -m rag_lab --corpus ./labs/rag-lab/corpus --cases ./labs/rag-lab/questions.json
+./.venv/bin/python -m rag_lab --corpus ./labs/rag-lab/corpus --cases ./labs/rag-lab/questions.json --case outside-the-corpus
+```
+
+Первый запуск оценивает весь набор вопросов; последний запускает только `outside-the-corpus`. В успешном прогоне pytest должен пройти тестовый набор, а CLI выведет отчёт оценки в терминал.
 
 ## Что реализовано
 

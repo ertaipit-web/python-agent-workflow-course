@@ -39,10 +39,27 @@ flowchart TD
 
 ## Что реализовано
 
+### Windows PowerShell
+
+Из корня репозитория установите пакет, выполните тесты и запустите оценку:
+
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".\labs\rag-lab[dev]"
+.\.venv\Scripts\python.exe -m pytest .\labs\rag-lab\tests
 .\.venv\Scripts\python.exe -m rag_lab --corpus .\labs\rag-lab\corpus --cases .\labs\rag-lab\questions.json
 ```
+
+### macOS / Linux
+
+Из корня репозитория выполните те же шаги с POSIX-путями:
+
+```bash
+./.venv/bin/python -m pip install -e "./labs/rag-lab[dev]"
+./.venv/bin/python -m pytest ./labs/rag-lab/tests
+./.venv/bin/python -m rag_lab --corpus ./labs/rag-lab/corpus --cases ./labs/rag-lab/questions.json
+```
+
+Если `.venv` ещё не настроено, инструкции для вашей ОС есть в разделе [учебные репозитории курса](lab-repository.md). Pytest должен пройти, а последний запуск напечатает метрики и результаты для набора вопросов.
 
 | Шаг | Что видно в коде |
 |---|---|

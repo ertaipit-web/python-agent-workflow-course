@@ -41,7 +41,23 @@ RAG Lab и Integration Lab тоже работают без API-ключей: re
 
 Учебный проект можно открыть отдельно в VS Code, но для изменений курса и лабораторных достаточно одного клона. Submodule не нужен: материалы и упражнения меняются вместе с программой курса.
 
-Для общего окружения курса из корня репозитория установите тестовые зависимости и запустите оба suite:
+Для общего окружения курса из корня репозитория сначала создайте `.venv`, если его ещё нет.
+
+### Windows PowerShell
+
+```powershell
+python -m venv .venv
+```
+
+### macOS / Linux
+
+```bash
+python3 -m venv .venv
+```
+
+Далее установите тестовые зависимости и запустите все четыре test suite.
+
+### Windows PowerShell
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".\labs\starter-repo[dev]"
@@ -53,5 +69,22 @@ RAG Lab и Integration Lab тоже работают без API-ключей: re
 .\.venv\Scripts\python.exe -m pytest .\labs\rag-lab\tests
 .\.venv\Scripts\python.exe -m pytest .\labs\integration-lab\tests
 ```
+
+### macOS
+
+```bash
+./.venv/bin/python -m pip install -e "./labs/starter-repo[dev]"
+./.venv/bin/python -m pip install -e "./labs/repo-triage[dev]"
+./.venv/bin/python -m pip install -e "./labs/rag-lab[dev]"
+./.venv/bin/python -m pip install -e "./labs/integration-lab[dev]"
+./.venv/bin/python -m pytest ./labs/starter-repo/tests
+./.venv/bin/python -m pytest ./labs/repo-triage/tests
+./.venv/bin/python -m pytest ./labs/rag-lab/tests
+./.venv/bin/python -m pytest ./labs/integration-lab/tests
+```
+
+### Linux
+
+Linux использует те же команды, что и macOS (Bash/`zsh`), приведённые выше. После установки все четыре запуска pytest должны завершиться без ошибок.
 
 Если учебный проект скопирован отдельно от курса, установите его в собственное окружение `.venv` по инструкциям в README этого проекта.

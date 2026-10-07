@@ -13,4 +13,4 @@
 ## Границы
 
 - Разрешён только `tests/test_core.py`.
-- Проверка: `python -m pytest`.
+- Проверка: запустите pytest по platform-specific команде из [README проекта](../README.md).

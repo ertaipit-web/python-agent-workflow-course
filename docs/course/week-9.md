@@ -301,8 +301,9 @@ volumes:
   postgres_data:
 ```
 
-Студент выполняет:
-```bash
+Команда одинакова в Windows PowerShell, macOS Terminal и Linux shell; её выполняют из каталога с compose-файлом:
+
+```text
 docker compose up
 ```
 и получает работающий сервис.
@@ -495,13 +496,13 @@ Business impact (time saved, automation rate)
 
 **Демонстрация:**
 
-```bash
-# Test mode (default, safe)
-docker compose -f labs/integration-lab/docker-compose.yml up --build
+Команда ниже одинакова в Windows PowerShell, macOS и Linux и выполняется из корня репозитория:
 
-# Demo mode (deterministic ToolCall through Policy → Approval → API)
-RUNNER_MODE=demo docker compose -f labs/integration-lab/docker-compose.yml up --build
+```text
+docker compose -f labs/integration-lab/docker-compose.yml up --build
 ```
+
+Текущий Compose-файл запускает безопасный `RUNNER_MODE=test`; shell-переменная перед командой Compose не включает demo. Кроссплатформенная инструкция для локального demo с явной настройкой `.env` и opt-in записи приведена в Production README лаборатории Integration Lab в исходном репозитории; описание лаборатории на сайте — [Integration Lab](../integration-lab.md).
 
 Это не новые концепции — итоговый checklist всего курса.
 

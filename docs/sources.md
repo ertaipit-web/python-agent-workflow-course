@@ -32,7 +32,7 @@
 
 ## Локальные модели и интеграция с инструментами
 
-- [Ollama: загрузка](https://ollama.com/download) и [FAQ](https://docs.ollama.com/faq) — установка, работа локального сервера и типовые вопросы.
+- Установка Ollama: [Windows](https://ollama.com/download/windows), [macOS](https://ollama.com/download/mac), [Linux](https://docs.ollama.com/linux); также [общая страница загрузки](https://ollama.com/download) и [FAQ](https://docs.ollama.com/faq) — установка, работа локального сервера и типовые вопросы.
 - Каталог моделей Ollama: [Qwen3](https://ollama.com/library/qwen3) и [Qwen2.5-Coder](https://ollama.com/library/qwen2.5-coder) — сверка названий и доступных тегов моделей, рекомендованных для начальных экспериментов на ограниченной конфигурации.
 - [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility) — подключение совместимых клиентов и проверка локального API.
 - [Ollama integration for VS Code](https://docs.ollama.com/integrations/vscode) — подключение локальной модели к VS Code Chat.

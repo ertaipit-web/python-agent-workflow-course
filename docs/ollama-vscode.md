@@ -6,38 +6,56 @@
 
 Начальный кандидат для экспериментов с локальными agent tasks — `qwen3:8b`. Для сравнения генерации/объяснения Python-кода можно отдельно попробовать `qwen2.5-coder:7b`. Эти модели могут работать медленно на CPU и не гарантируют надёжного tool calling; не ожидайте поведения на уровне облачных coding-моделей.
 
-```powershell
-ollama pull qwen3:8b
-ollama run qwen3:8b
-```
-
 Начните с одного запроса, контекста 8K и закрытых лишних приложений. Повышайте контекст до 16K только после замера доступной памяти и устойчивости.
 
-## Проверить Ollama локально
+## Установка и запуск Ollama
 
-Запустите приложение Ollama, затем в PowerShell:
+- **Windows:** установите приложение по [официальной инструкции для Windows](https://ollama.com/download/windows), затем откройте новое окно PowerShell или Terminal. Обычно приложение запускает локальный сервер автоматически.
+- **macOS:** установите официальное приложение с [страницы загрузки Ollama для macOS](https://ollama.com/download/mac) и запустите его. CLI доступен после установки приложения.
+- **Linux:** следуйте [официальной инструкции Ollama для Linux](https://docs.ollama.com/linux). В типовой установке Ollama работает как systemd service; запустите/проверьте службу согласно инструкции.
 
-```powershell
+Инструкции поставщика меняются; не копируйте установочные скрипты из сторонних источников. Далее предполагается, что команда `ollama` доступна в новом терминале.
+
+## Ollama CLI — команды одинаковы на Windows, macOS и Linux
+
+Эти команды вводятся в PowerShell на Windows и в Terminal (`zsh`/`bash`) на macOS/Linux:
+
+```bash
 ollama --version
 ollama list
 ollama ps
-Invoke-RestMethod http://127.0.0.1:11434/api/tags
-Invoke-RestMethod http://127.0.0.1:11434/v1/models
-```
-
-Если локальные API возвращают список моделей, служба доступна. На Windows отдельное `ollama serve` обычно не требуется: приложение само запускает сервер. Не запускайте второй сервер на занятом порту и не открывайте локальный API в интернет — Ollama по умолчанию привязывается к localhost, и этого достаточно для VS Code и Kilo на том же компьютере.
-
-Другие команды:
-
-```powershell
+ollama pull qwen3:8b
+ollama run qwen3:8b
 ollama show qwen3:8b
 ollama pull qwen2.5-coder:7b
 ollama run qwen2.5-coder:7b
 ```
 
-В терминальном чате `ollama run` для завершения используется `/bye`, а `/show info` показывает сведения о загруженной модели. `pull` только загружает веса; `run` запускает диалог.
+Команды в блоке одинаковы в PowerShell и в Terminal на macOS/Linux.
 
-Чтобы закрепить настройки контекста за отдельным тегом, создайте `Modelfile` в удобной папке и выполните в ней `ollama create`:
+`pull` загружает веса, `run` начинает диалог, а `list` показывает загруженные модели. В терминальном чате для завершения используется `/bye`, `/show info` показывает сведения о модели. Чтобы проверить доступность локального API, выполните HTTP-запросы из следующего раздела. В Windows приложение обычно запускает сервер автоматически; на macOS/Linux способ запуска зависит от установленного приложения или службы. Не запускайте второй сервер на занятом порту и не открывайте локальный API в интернет: localhost достаточно для VS Code и Kilo на том же компьютере.
+
+### Проверка Ollama API
+
+**Windows PowerShell**
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:11434/api/tags
+Invoke-RestMethod http://127.0.0.1:11434/v1/models
+```
+
+**macOS / Linux**
+
+```bash
+curl http://127.0.0.1:11434/api/tags
+curl http://127.0.0.1:11434/v1/models
+```
+
+Оба варианта делают GET-запросы к одному локальному серверу и выводят JSON со списком моделей. `curl` — CLI HTTP-клиент, обычно доступный в macOS/Linux Terminal; на Windows ничего устанавливать не нужно, используйте встроенный `Invoke-RestMethod`.
+
+## Настроить Modelfile
+
+Чтобы закрепить настройки контекста за отдельным тегом, сохраните следующий текст в файл с именем `Modelfile`:
 
 ```text
 FROM qwen3:8b
@@ -45,8 +63,19 @@ PARAMETER num_ctx 8192
 PARAMETER temperature 0.2
 ```
 
+Затем выполните команды из той же папки, где лежит файл.
+
+**Windows PowerShell**
+
 ```powershell
 ollama create qwen3-8b-ctx8k -f .\Modelfile
+ollama run qwen3-8b-ctx8k
+```
+
+**macOS / Linux**
+
+```bash
+ollama create qwen3-8b-ctx8k -f ./Modelfile
 ollama run qwen3-8b-ctx8k
 ```
 
@@ -59,7 +88,7 @@ ollama run qwen3-8b-ctx8k
 1. Убедитесь, что Ollama запущена, модель есть в `ollama list`, `/api/tags` отвечает.
 2. Установите официальное [расширение Ollama для VS Code](https://marketplace.visualstudio.com/items?itemName=Ollama.ollama).
 3. Откройте VS Code Chat и выберите модель из секции Ollama в picker внизу поля ввода.
-4. Если модели нет: Command Palette (`Ctrl+Shift+P`) → `Ollama: Refresh Models`, затем `Ollama: Diagnose Models`; проверьте Output channel **Ollama**.
+4. Если модели нет, откройте Command Palette (`Ctrl+Shift+P` в Windows/Linux, `Cmd+Shift+P` в macOS), затем запустите `Ollama: Refresh Models` и `Ollama: Diagnose Models`; проверьте Output channel **Ollama**.
 
 По текущей документации Ollama, расширению требуется VS Code 1.127 или новее; оно обнаруживает модели на `http://127.0.0.1:11434`. Актуальные шаги и требования — [официальный гайд Ollama для VS Code](https://docs.ollama.com/integrations/vscode).
 
@@ -134,7 +163,7 @@ print(response.choices[0].message.content)
 
 | Симптом | Что проверить |
 |---|---|
-| `ollama` не распознана в PowerShell | Перезапустить терминал после установки и проверить установку Ollama/PATH. |
+| `ollama` не найдена в терминале | Перезапустить терминал после установки и проверить установку Ollama/PATH согласно инструкции своей ОС. |
 | `/api/tags` не отвечает | Запустить Ollama app и проверить localhost; отдельный `ollama serve` запускать только если служба действительно не запущена. |
 | API отвечает, моделей нет | Выполнить `ollama list`; нужную модель скачать через `ollama pull <точный-тег>`. |
 | Ollama app отвечает, но VS Code Chat не видит модель | Установить расширение Ollama, обновить список через Command Palette, проверить Ollama Output channel и версию VS Code. |
