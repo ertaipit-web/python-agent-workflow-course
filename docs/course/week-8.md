@@ -586,7 +586,7 @@ Business impact (time saved, automation rate)
 
 | Режим | RUNNER_MODE | External API | Side effects |
 |---|---|---|---|
-| Test / CI | `test` | mock | none |
+| Test / CI | `test` | none | none |
 | Demo | `demo` | mock or real (opt-in) | deterministic ToolCall, `DEMO_APPROVE_WRITES` |
 | Real integration | `demo` + real token | real GitHub | explicit opt-in required |
 

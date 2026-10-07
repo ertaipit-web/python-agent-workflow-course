@@ -127,8 +127,7 @@ def _build_policy() -> Policy:
     """Build a least-privilege policy for demo/production modes.
 
     The allowlist is restricted to the single demo repository configured via
-    GITHUB_OWNER and GITHUB_REPO. Wildcard ("*","*") is not used here — it is
-    only available as a low-level Policy mechanism for unit tests.
+    GITHUB_OWNER and GITHUB_REPO.
     """
     from integration_lab.tools import READ_ONLY_SCOPES, WRITE_SCOPES
 
