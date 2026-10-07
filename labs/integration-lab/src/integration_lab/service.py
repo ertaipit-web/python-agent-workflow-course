@@ -28,6 +28,7 @@ from integration_lab.database import (
 from integration_lab.runtime import (
     BLOCKED,
     COMPLETED,
+    FAILED,
     NEEDS_APPROVAL,
     AgentRuntime,
     Policy,
@@ -36,6 +37,9 @@ from integration_lab.runtime import (
     ToolCall,
 )
 
+settings = get_settings()
+configured_log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+
 structlog.configure(
     processors=[
         structlog.contextvars.merge_contextvars,
@@ -43,7 +47,7 @@ structlog.configure(
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.JSONRenderer(),
     ],
-    wrapper_class=structlog.make_filtering_bound_logger(logging.INFO),
+    wrapper_class=structlog.make_filtering_bound_logger(configured_log_level),
     context_class=dict,
     logger_factory=structlog.WriteLoggerFactory(file=sys.stdout),
     cache_logger_on_first_use=True,
@@ -51,7 +55,6 @@ structlog.configure(
 
 logger = structlog.get_logger(__name__)
 
-settings = get_settings()
 engine = None
 async_session_maker = None
 
@@ -116,17 +119,22 @@ def _build_client() -> IssueApiClient:
         base_url=settings.github_base_url,
         token=settings.github_token,
         timeout=2.0,
-        max_attempts=settings.default_max_retries,
+        max_retries=settings.default_max_retries,
     )
 
 
 def _build_policy() -> Policy:
-    """Build a permissive policy for demo/production modes."""
+    """Build a least-privilege policy for demo/production modes.
+
+    The allowlist is restricted to the single demo repository configured via
+    GITHUB_OWNER and GITHUB_REPO. Wildcard ("*","*") is not used here — it is
+    only available as a low-level Policy mechanism for unit tests.
+    """
     from integration_lab.tools import READ_ONLY_SCOPES, WRITE_SCOPES
 
     return Policy(
         granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
-        allowed_repositories=frozenset([("*", "*")]),
+        allowed_repositories=frozenset([(settings.demo_owner, settings.demo_repo)]),
     )
 
 
@@ -164,12 +172,11 @@ def get_runtime() -> AgentRuntime:
                 },
             )
         ])
-        if settings.demo_approve_writes:
-            policy = Policy(
-                granted_scopes=policy.granted_scopes,
-                allowed_repositories=policy.allowed_repositories,
-                approver=lambda call, reason: True,
-            )
+        policy = Policy(
+            granted_scopes=policy.granted_scopes,
+            allowed_repositories=policy.allowed_repositories,
+            approver=lambda call, reason: settings.demo_approve_writes,
+        )
     else:
         planner = ScriptedPlanner(calls=[])
 
@@ -238,6 +245,9 @@ async def execute_agent_task(
         elif report.status == BLOCKED:
             error_msg = report.reason or "Agent execution blocked"
             final_status = "blocked"
+        elif report.status == FAILED:
+            error_msg = report.reason or "Agent execution failed"
+            final_status = "failed"
         else:
             error_msg = report.reason or "Agent execution failed"
             final_status = report.status

@@ -20,7 +20,7 @@ from integration_lab.errors import (
 )
 
 DEFAULT_TIMEOUT_SECONDS = 2.0
-DEFAULT_MAX_ATTEMPTS = 3
+DEFAULT_MAX_RETRIES = 3
 DEFAULT_BACKOFF_BASE_SECONDS = 0.5
 DEFAULT_BACKOFF_MAX_SECONDS = 4.0
 MAX_TITLE_CHARACTERS = 200
@@ -33,18 +33,25 @@ class IssueApiClient:
         token: str,
         *,
         timeout: float = DEFAULT_TIMEOUT_SECONDS,
-        max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+        max_retries: int | None = None,
+        max_attempts: int | None = None,
         backoff_base: float = DEFAULT_BACKOFF_BASE_SECONDS,
         backoff_max: float = DEFAULT_BACKOFF_MAX_SECONDS,
     ) -> None:
+        if max_attempts is not None and max_attempts < 1:
+            raise ValueError("max_attempts must be at least 1")
+        if max_attempts is not None:
+            max_retries = max_attempts - 1
+        if max_retries is None:
+            max_retries = DEFAULT_MAX_RETRIES
         if not base_url.startswith(("http://", "https://")):
             raise ValueError("base_url must be an http or https URL")
         if not token.strip():
             raise ValueError("token must not be empty")
         if timeout <= 0:
             raise ValueError("timeout must be positive")
-        if max_attempts < 1:
-            raise ValueError("max_attempts must be at least 1")
+        if max_retries < 0:
+            raise ValueError("max_retries must be non-negative")
         if backoff_base <= 0:
             raise ValueError("backoff_base must be positive")
         if backoff_max < backoff_base:
@@ -52,7 +59,10 @@ class IssueApiClient:
         self.base_url = base_url.rstrip("/")
         self._token = token
         self._timeout = timeout
-        self._max_attempts = max_attempts
+        # max_retries = number of retry attempts after the initial call.
+        # total attempts = 1 (initial) + max_retries (retries).
+        self._max_attempts = max_retries + 1
+        self._max_retries = max_retries
         self._backoff_base = backoff_base
         self._backoff_max = backoff_max
         self.call_count = 0
@@ -129,8 +139,10 @@ class IssueApiClient:
                 with urlopen(request, timeout=self._timeout) as response:
                     return json.loads(response.read() or b"{}")
             except HTTPError as error:
-                mapped = _map_http_error(error, attempts=attempt)
-                if isinstance(mapped, ServerError) and idempotent and attempt < self._max_attempts:
+                mapped, retryable = _map_http_error(
+                    error.code, method, _error_details(error), attempts=attempt
+                )
+                if isinstance(mapped, ServerError) and retryable and idempotent and attempt < self._max_attempts:
                     time.sleep(self._backoff(attempt))
                     continue
                 raise mapped from None
@@ -174,20 +186,32 @@ class IssueApiClient:
         return delay * random.uniform(0.5, 1.0)
 
 
-def _map_http_error(error: HTTPError, *, attempts: int) -> Exception:
-    status = error.code
-    code, message = _error_details(error)
+def _map_http_error(
+    status: int,
+    method: str,
+    details: tuple[str, str],
+    *,
+    attempts: int,
+) -> tuple[Exception, bool]:
+    """Return the mapped exception and whether the request may be retried.
+
+    Retryable: HTTP 429 rate limit and 5xx server errors on idempotent operations.
+    The caller additionally checks ``idempotent`` before retrying.
+    """
+    code, message = details
     if status == 401:
-        return AuthenticationError(message or "authentication failed")
+        return AuthenticationError(message or "authentication failed"), False
     if status == 403:
-        return PermissionDeniedError(message or "the token lacks the required scope")
+        return PermissionDeniedError(message or "the token lacks the required scope"), False
     if status == 404:
-        return NotFoundError(message or "resource not found")
+        return NotFoundError(message or "resource not found"), False
     if status in {400, 409, 413, 422}:
-        return ValidationRejectedError(message or f"the service rejected the request ({code})")
+        return ValidationRejectedError(message or f"the service rejected the request ({code})"), False
+    if status == 429:
+        return ServerError(message or "the service rate-limited the request", attempts=attempts), True
     if status >= 500:
-        return ServerError(message or f"the service failed with status {status}", attempts=attempts)
-    return ValidationRejectedError(message or f"unexpected status {status}")
+        return ServerError(message or f"the service failed with status {status}", attempts=attempts), True
+    return ValidationRejectedError(message or f"unexpected status {status}"), False
 
 
 def _error_details(error: HTTPError) -> tuple[str, str]:

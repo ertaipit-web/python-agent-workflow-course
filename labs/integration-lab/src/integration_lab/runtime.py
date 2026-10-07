@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol, cast
 
 from integration_lab.client import IssueApiClient
 from integration_lab.errors import IntegrationError
@@ -16,6 +16,7 @@ from integration_lab.tools import (
 )
 
 COMPLETED = "completed"
+FAILED = "failed"
 NEEDS_APPROVAL = "needs_approval"
 BLOCKED = "blocked"
 REDACTED_ARGUMENTS = frozenset({"token", "secret", "authorization", "password"})
@@ -30,12 +31,7 @@ class Policy:
 
     def allows_repository(self, arguments: Mapping[str, object]) -> bool:
         repository = (str(arguments.get("owner", "")), str(arguments.get("repository", "")))
-        for allowed in self.allowed_repositories:
-            if allowed == ("*", "*"):
-                return True
-            if allowed == repository:
-                return True
-        return False
+        return repository in self.allowed_repositories
 
 
 @dataclass(frozen=True)
@@ -160,19 +156,28 @@ class AgentRuntime:
                 status, reason = BLOCKED, detail
                 break
 
-            if tool.spec.side_effect and not self._approved(call):
+            if tool.spec.side_effect and self._approval_requested(call):
                 pending = call
                 trace.append(self._event(call, "awaiting_approval", "human approval required",
                                          None, "needs_approval"))
                 status, reason = NEEDS_APPROVAL, f"{call.tool} has an external side effect"
                 break
 
+            if tool.spec.side_effect and not self._approved(call):
+                trace.append(self._event(call, "rejected", "human approval was rejected",
+                                         "approval_rejected", "approval_rejected"))
+                status, reason = BLOCKED, f"{call.tool}: human approval was rejected"
+                break
+
             try:
-                results.append(tool.handler(arguments))
+                results.append(cast(dict[str, Any], tool.handler(arguments)))
             except IntegrationError as error:
+                # Tool execution failure is the agent's working outcome, not a
+                # policy violation. Policy/scope/allowlist rejections are BLOCKED;
+                # an exposed tool whose call raised is FAILED.
                 trace.append(self._event(call, "failed", str(error), type(error).__name__,
                                          "tool_failed"))
-                status, reason = BLOCKED, f"{call.tool}: {error}"
+                status, reason = FAILED, f"{call.tool}: {error}"
                 break
             trace.append(self._event(call, "complete", "result returned", None, "tool_complete"))
 
@@ -185,9 +190,11 @@ class AgentRuntime:
             trace=tuple(trace),
         )
 
+    def _approval_requested(self, call: ToolCall) -> bool:
+        return self.policy.approver is None
+
     def _approved(self, call: ToolCall) -> bool:
-        if self.policy.approver is None:
-            return False
+        assert self.policy.approver is not None
         return bool(self.policy.approver(call, f"{call.tool} changes an external system"))
 
     def _event(

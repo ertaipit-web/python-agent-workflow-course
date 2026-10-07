@@ -215,12 +215,14 @@ GET  /health          → liveness probe
 | `running` | Выполняется в background | `null` |
 | `completed` | Успешно завершено | установлено |
 | `failed` | Ошибка выполнения | установлено |
-| `needs_approval` | Ожидает подтверждения humans (side effect) | `null` (terminal, но не success) |
-| `blocked` | Ограничение policy (tool не зарегистрирован, repository не в allowlist, не хватает scope, invalid arguments, external error) | `null` |
+| `needs_approval` | Ожидает подтверждения humans (side effect) | `null` (неterminal snapshot) |
+| `blocked` | Ограничение policy (tool не зарегистрирован, repository не в allowlist, не хватает scope, invalid arguments) | установлено |
 
 `blocked` отличается от `failed`:
 - `failed` — системная ошибка (исключение, timeout, provider unavailable);
 - `blocked` — политика отклонила действие до исполнения, причина в `error`/`trace`.
+
+`blocked` и `failed` — terminal-статусы и фиксируют `completed_at`. `needs_approval` — неterminal snapshot без `completed_at`, потому что выполнение остановлено на HumanGate и ожидает подтверждения или отказа.
 
 Цель: показать, как agent workflow становится сервисом, доступным другим системам.
 
@@ -280,6 +282,13 @@ Result persisted
 
 Механизм: **FastAPI `BackgroundTasks`** или `asyncio.create_task()`. Не добавляйте Kafka/RabbitMQ/Celery — цель понять async execution model, а не изучать очереди.
 
+!!! warning "Ограничение BackgroundTasks"
+    Production Layer использует **FastAPI `BackgroundTasks`** — это process-local execution.
+
+    - `restart/crash` процесса не является durable queue
+    - queued/running jobs не имеют automatic recovery
+    - для production deployment используйте Celery/RabbitMQ/Kafka
+
 **Async execution details (#3):**
 
 `execute_agent_task` — async function, но `runtime.run()` вызывает `IssueApiClient`, который использует blocking `urllib.request.urlopen()`. Blocking I/O выносится в thread через `asyncio.to_thread`, чтобы event loop оставался responsive:
@@ -337,9 +346,10 @@ one token
   → minimum required permissions
 ```
 
-Минимальные permissions для Production Layer:
-- **Contents** —读读 (read) для анализа кода
-- **Issues** — read + write для demo create_issue
+Минимальные permissions для Production Layer (Issues API):
+- **Issues** — read + write (list, get, create, close)
+- **Metadata** — read (требуется GitHub API)
+- **Contents** — не требуется (этот flow работает только через Issues)
 
 Classic PAT со scope `repo` не рекомендуется — он даёт доступ ко всем репозиториям, к которым у токена есть доступ. Для учебного курса достаточно одного репозитория с минимальными permissions.
 

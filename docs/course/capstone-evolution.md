@@ -130,7 +130,7 @@ Week 3: agent receives issue
 
 **Reason:** Capstone продолжение, а не новый проект. Всё, что было построено в Week 1–7, переходит в сервис.
 
-**Result:** student runs `docker compose up`, получает работающий сервис с KPI report — `time saved`, `success rate`, `automation rate`.
+**Result:** студент запускает сервис через `docker compose up`, собирает метрики из результата, а затем вручную заполняет KPI report — `time saved`, `success rate`, `automation rate` и качество/затраты не генерируются автоматически из Compose.
 
 ---
 

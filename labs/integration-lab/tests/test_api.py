@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import json
 import time
 from collections.abc import Iterator
@@ -287,6 +288,81 @@ def test_read_is_retried_after_a_connection_reset(api: IssueApi, monkeypatch) ->
 
     assert client.list_issues(OWNER, REPOSITORY) == []
     assert attempts == ["GET", "GET"]
+
+
+def test_idempotent_read_retries_429_and_eventually_succeeds(monkeypatch) -> None:
+    attempts = 0
+
+    class Response:
+        def read(self) -> bytes:
+            return b'{"issues": []}'
+
+        def __enter__(self) -> Self:
+            return self
+
+        def __exit__(self, *arguments: object) -> None:
+            return None
+
+    def flaky_urlopen(request: Request, timeout: float) -> Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise HTTPError(
+                request.full_url,
+                429,
+                "rate limited",
+                {},
+                io.BytesIO(b'{"error":{"code":"rate_limited","message":"try later"}}'),
+            )
+        return Response()
+
+    monkeypatch.setattr("integration_lab.client.urlopen", flaky_urlopen)
+    client = IssueApiClient("http://example.com", "read-write", max_retries=1, backoff_base=0.01)
+
+    assert client.list_issues("owner", "repo") == []
+    assert attempts == 2
+
+
+def test_idempotent_read_stops_after_429_retry_budget(monkeypatch) -> None:
+    def rate_limited_urlopen(request: Request, timeout: float) -> None:
+        raise HTTPError(
+            request.full_url,
+            429,
+            "rate limited",
+            {},
+            io.BytesIO(b'{"error":{"code":"rate_limited","message":"try later"}}'),
+        )
+
+    monkeypatch.setattr("integration_lab.client.urlopen", rate_limited_urlopen)
+    client = IssueApiClient("http://example.com", "read-write", max_retries=1, backoff_base=0.01)
+
+    with pytest.raises(ServerError) as error:
+        client.list_issues("owner", "repo")
+
+    assert error.value.attempts == 2
+
+
+def test_write_429_does_not_retry(monkeypatch) -> None:
+    attempts = 0
+
+    def rate_limited_urlopen(request: Request, timeout: float) -> None:
+        nonlocal attempts
+        attempts += 1
+        raise HTTPError(
+            request.full_url,
+            429,
+            "rate limited",
+            {},
+            io.BytesIO(b'{"error":{"code":"rate_limited","message":"try later"}}'),
+        )
+
+    monkeypatch.setattr("integration_lab.client.urlopen", rate_limited_urlopen)
+    client = IssueApiClient("http://example.com", "read-write", max_retries=3, backoff_base=0.01)
+
+    with pytest.raises(ServerError):
+        client.create_issue("owner", "repo", title="test")
+
+    assert attempts == 1
 
 
 def test_client_retries_a_failing_read_only_once(tmp_path: Path) -> None:

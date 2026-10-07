@@ -147,7 +147,7 @@ def _scenario(
         },
     )
     allowed = frozenset({(OWNER, REPOSITORY)})
-    resolve_approver = approver if callable(approver) else (lambda call, reason: False)
+    resolve_approver = approver
 
     match scenario:
         case "read":

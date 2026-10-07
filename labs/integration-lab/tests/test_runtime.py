@@ -10,6 +10,7 @@ from integration_lab.issue_api import SCOPE_READ, SCOPE_WRITE, IssueApi, Token
 from integration_lab.runtime import (
     BLOCKED,
     COMPLETED,
+    FAILED,
     NEEDS_APPROVAL,
     AgentRuntime,
     Policy,
@@ -108,7 +109,7 @@ def test_approved_write_reaches_the_external_system(client: IssueApiClient, api:
     assert api.store.count() == 2
 
 
-def test_denied_approval_keeps_the_run_without_a_side_effect(
+def test_denied_approval_blocks_the_run_without_a_side_effect(
     client: IssueApiClient, api: IssueApi
 ) -> None:
     policy = Policy(
@@ -119,7 +120,9 @@ def test_denied_approval_keeps_the_run_without_a_side_effect(
 
     _, run = run_with(client, policy, [WRITE_CALL])
 
-    assert run.status == NEEDS_APPROVAL
+    assert run.status == BLOCKED
+    assert run.reason == "create_issue: human approval was rejected"
+    assert run.trace[-1].transition_reason == "approval_rejected"
     assert api.store.count() == 1
 
 
@@ -147,6 +150,19 @@ def test_repository_outside_the_allowlist_is_rejected(client: IssueApiClient) ->
     assert run.status == BLOCKED
     assert run.reason == "list_issues: repository is not allowlisted"
     assert run.trace[-1].transition_reason == "repository_not_allowed"
+
+
+def test_wildcard_allowlist_is_rejected(client: IssueApiClient) -> None:
+    policy = Policy(
+        granted_scopes=READ_ONLY_SCOPES,
+        allowed_repositories=frozenset({("*", "*")}),
+    )
+    call = ToolCall("list_issues", {"owner": OWNER, "repository": REPOSITORY})
+
+    _, run = run_with(client, policy, [call])
+
+    assert run.status == BLOCKED
+    assert run.reason == "list_issues: repository is not allowlisted"
 
 
 def test_tool_outside_the_registry_is_rejected_by_name(client: IssueApiClient) -> None:
@@ -181,7 +197,9 @@ def test_external_failure_blocks_the_run_instead_of_reporting_success(
     _, blocked = run_with(IssueApiClient(api.base_url, "made-up-token", timeout=1.0), policy, [READ_CALL])
     _, allowed = run_with(IssueApiClient(api.base_url, "read-write", timeout=1.0), policy, [READ_CALL])
 
-    assert blocked.status == BLOCKED
+    # An exposed tool whose call raised an IntegrationError is FAILED, not BLOCKED.
+    # BLOCKED is reserved for policy/scope/allowlist rejections that never reach the tool.
+    assert blocked.status == FAILED
     assert blocked.trace[-1].error_type == "AuthenticationError"
     assert blocked.trace[-1].transition_reason == "tool_failed"
     assert allowed.status == COMPLETED

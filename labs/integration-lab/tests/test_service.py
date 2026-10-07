@@ -352,21 +352,33 @@ async def test_demo_toolcall_success(mock_github_api, monkeypatch, db_engine):
 
 @pytest.mark.asyncio
 async def test_demo_toolcall_denied_by_policy(mock_github_api, monkeypatch, db_engine):
-    """Policy deny: ToolCall → blocked repository → no GitHub side effect."""
-    # Use owner/repo that is NOT in the allowlist (allowlist is (*, *), so we test
-    # with a repository that will fail at the GitHub API level)
+    """Policy deny: repository not in allowlist → blocked, handler not called, API not called."""
+    from integration_lab import service
+    from integration_lab.runtime import Policy
+    from integration_lab.tools import READ_ONLY_SCOPES, WRITE_SCOPES
+
+    # The policy allowlist is ("course", "taskboard"), but the planner will target
+    # ("evil", "evil-repo") — this mismatch proves the security property.
+    monkeypatch.setattr(service, "_build_policy", lambda: Policy(
+        granted_scopes=READ_ONLY_SCOPES | WRITE_SCOPES,
+        allowed_repositories=frozenset([("course", "taskboard")]),
+    ))
+
     async with _make_demo_client(
         mock_github_api, monkeypatch, db_engine,
-        owner="evil", repo="evil-repo", approve=False
+        owner="evil", repo="evil-repo", approve=True
     ) as ac:
         create_response = await ac.post("/tasks", json={"task": "Create an issue in evil repo"})
         task_id = create_response.json()["task_id"]
 
         data = await _wait_for_task(ac, task_id)
         assert data["task_id"] == task_id
-        # Without approval for a write tool, status should be needs_approval or blocked
-        assert data["status"] in ("needs_approval", "blocked", "failed")
-        # No issue should have been created
+        assert data["status"] == "blocked", (
+            f"Expected 'blocked' for repository not in allowlist, got '{data['status']}'"
+        )
+        assert data["error"] is not None
+        assert "repository is not allowlisted" in data["error"]
+        # No issue should have been created — handler was never invoked
         assert len(mock_github_api.store.list_issues("evil", "evil-repo", state=None)) == 0
 
 
@@ -382,7 +394,8 @@ async def test_demo_toolcall_approval_rejected(mock_github_api, monkeypatch, db_
 
         data = await _wait_for_task(ac, task_id)
         assert data["task_id"] == task_id
-        assert data["status"] in ("needs_approval", "blocked")
+        assert data["status"] == "blocked"
+        assert data["error"] == "create_issue: human approval was rejected"
         # No issue should have been created
         assert len(mock_github_api.store.list_issues("course", "taskboard", state=None)) == 0
 
@@ -515,7 +528,7 @@ async def test_retry_backoff_config(client):
 
 @pytest.mark.asyncio
 async def test_blocked_status_contract(client):
-    """blocked is a distinct terminal state with completed_at=None."""
+    """blocked is a distinct terminal state with completed_at set."""
     from integration_lab.database import create_execution, create_task, update_task_status
     from integration_lab.service import get_async_session_maker
 
@@ -529,7 +542,24 @@ async def test_blocked_status_contract(client):
         updated = await update_task_status(session, task.id, "blocked")
         await session.commit()
         assert updated.status == "blocked"
-        assert updated.completed_at is None, "blocked must not set completed_at"
+        assert updated.completed_at is not None, "blocked is terminal and must set completed_at"
+
+
+@pytest.mark.asyncio
+async def test_execution_blocked_has_completed_at(client, db_session):
+    from integration_lab.database import create_execution, create_task, update_execution
+
+    task = await create_task(db_session, {"task": "Blocked execution"})
+    await db_session.commit()
+    execution = await create_execution(db_session, task.id, "run-blocked")
+    await db_session.commit()
+
+    updated = await update_execution(db_session, execution.id, status="blocked")
+    await db_session.commit()
+
+    assert updated is not None
+    assert updated.status == "blocked"
+    assert updated.completed_at is not None
 
 
 @pytest.mark.asyncio

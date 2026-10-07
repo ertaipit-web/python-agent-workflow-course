@@ -61,7 +61,7 @@ side effect    → одобрен человеком?
 execute        → только теперь
 ```
 
-Отказ не превращается в «успешный» результат: `run.status` становится `blocked` или `needs_approval`, а `reason` объясняет, какая проверка сработала.
+Отказ не превращается в «успешный» результат: `run.status` становится `blocked` (policy/scope/allowlist rejection), `failed` (tool execution error) или `needs_approval` (human approval required), а `reason` объясняет, какая проверка сработала.
 
 ## Почему локальный сервис, а не api.github.com
 
@@ -74,7 +74,7 @@ client = IssueApiClient(
     base_url="https://api.github.com",
     token=os.environ["GITHUB_TOKEN"],   # fine-grained token с минимальными scopes
     timeout=5.0,
-    max_attempts=2,
+    max_retries=2,
 )
 ```
 

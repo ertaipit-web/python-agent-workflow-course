@@ -127,12 +127,10 @@ python -m integration_lab.service
 | `running` | нет | `null` | Выполняется в background |
 | `completed` | да | установлен | Успешно завершена, `result` доступен |
 | `failed` | да | установлен | Ошибка выполнения, `error` доступен |
-| `needs_approval` | да | `null` | Ожидает human approval side effect. Результат и trace доступны, но задача не считается завершённой. |
-| `blocked` | да | `null` | Остановлена по правилам policy (insufficient scope, invalid arguments, tool not registered, repository not allowed, tool failure). `error` содержит причину. |
+| `needs_approval` | нет | `null` | Ожидает human approval side effect. Результат и trace доступны, но задача не считается завершённой. |
+| `blocked` | да | установлен | Остановлена по правилам policy (insufficient scope, invalid arguments, tool not registered, repository not allowed). `error` содержит причину. |
 
-`blocked` — terminal outcome, но `completed_at` остаётся `null`. Это осознанное решение: `blocked` и `failed` — разные причины остановки. `failed` = системная ошибка (exception), `blocked` = policy rejection. `needs_approval` также не выставляет `completed_at`, так как задача ожидает ручного подтверждения.
-
-`needs_approval` — не success state. GET возвращает статус `needs_approval`, `result` с `pending_approval` и `trace`. Задача остаётся в этом статусе до ручного вмешательства (в текущей версии нет API для resume — это намеренно).
+`blocked` и `failed` — terminal outcomes и фиксируют `completed_at`. `needs_approval` остается неterminal snapshot без `completed_at`, чтобы задача ожидала ручного подтверждения или отказа. Текущий сервис не имеет resume endpoint; этот статус можно интерпретировать как остановку на HumanGate.
 
 ### `GET /health`
 Liveness probe.
@@ -174,10 +172,11 @@ Liveness probe.
 cd labs/integration-lab
 pip install -e ".[dev]"
 
-# Запуск тестов (требует PostgreSQL)
-DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/agent_course \
-GITHUB_TOKEN=test \
+# pytest использует SQLite in-memory (не требует PostgreSQL)
 pytest tests/ -v
+
+# CI запускает pytest с PostgreSQL service
+# Docker/demo использует PostgreSQL через docker-compose
 ```
 
 ## Docker
@@ -255,16 +254,15 @@ DEMO_APPROVE_WRITES — auto-approve write operations
 
 Демонстрирует полный vertical slice: POST → ToolCall → Policy → Approval → API → Trace → Result. По умолчанию `DEMO_APPROVE_WRITES=false` — write operations требуют явного подтверждения.
 
-### Real integration
+### Production stub
 
 ```text
-RUNNER_MODE=demo (или любое значение, кроме test/demo)
-реальный GitHub API (настройте через GITHUB_BASE_URL и GITHUB_TOKEN)
-реальные external side effects
-требует explicit opt-in и GITHUB_TOKEN
+RUNNER_MODE=production (или любое значение, кроме test/demo)
+реальный IssueApiClient configured, но ScriptedPlanner(calls=[]) — tool calls не выполняются
+требует GITHUB_TOKEN
 ```
 
-Для реальной интеграции используйте fine-grained PAT с minimum permissions: один token → один repository → minimum permissions.
+Production Layer не подключает LLM-провайдер к Production Layer. `ScriptedPlanner` с пустым calls=[] означает, что planner не подключён. Для реальной интеграции замените `ScriptedPlanner` на реальный planner через `ModelClient` из Week 4.
 
 ---
 

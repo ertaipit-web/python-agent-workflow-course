@@ -165,7 +165,7 @@ async def update_task_status(
     task.status = status
     if status == "running" and not task.started_at:
         task.started_at = datetime.now(UTC)
-    if status in ("completed", "failed"):
+    if status in ("completed", "failed", "blocked"):
         task.completed_at = datetime.now(UTC)
     if result is not None:
         task.result = result
@@ -200,7 +200,7 @@ async def update_execution(
         execution.status = status
     if trace is not None:
         execution.trace = trace
-    if status in ("completed", "failed"):
+    if status in ("completed", "failed", "blocked"):
         execution.completed_at = datetime.now(UTC)
     await session.flush()
     return execution

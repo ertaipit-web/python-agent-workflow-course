@@ -68,7 +68,7 @@ jobs:
       - name: Type check (pyright)
         working-directory: ./labs/integration-lab
         run: |
-          python -m pyright src/integration_lab || true
+          python -m pyright src/integration_lab
 
       - name: Lint (ruff)
         working-directory: ./labs/integration-lab
@@ -92,15 +92,14 @@ jobs:
         run: |
           docker build -t agent-course-capstone:test .
 
-      - name: Test Docker image runs
+      - name: Start container and check health
         working-directory: ./labs/integration-lab
         run: |
-          docker run --rm \
-            -e DATABASE_URL=postgresql+psycopg://postgres:postgres@host.docker.internal:5432/agent_course \
-            -e GITHUB_TOKEN=test \
-            --add-host=host.docker.internal:host-gateway \
-            agent-course-capstone:test \
-            python -c "from integration_lab.service import app; print('Import OK')"
+          docker compose up -d --build
+          docker compose ps
+          curl --retry 30 --retry-delay 1 --retry-connrefused \
+            --fail --silent --show-error http://localhost:8000/health
+          docker compose down --volumes
 
   zensical-build:
     runs-on: ubuntu-latest

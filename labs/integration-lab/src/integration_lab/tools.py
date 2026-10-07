@@ -61,6 +61,12 @@ def build_registry(client: IssueApiClient | None) -> dict[str, Tool]:
             return lambda arguments: _no_client()
         return handler
 
+    if client is None:
+        # Narrow the type for pyright: when client is None we build placeholder handlers.
+        _client: IssueApiClient = _no_client  # type: ignore[assignment]
+    else:
+        _client = client
+
     tools = (
         Tool(
             spec=ToolSpec(
@@ -77,7 +83,7 @@ def build_registry(client: IssueApiClient | None) -> dict[str, Tool]:
                 side_effect=False,
                 integer_limits={"limit": (1, 100)},
             ),
-            handler=_safe_handler(lambda arguments: client.list_issues(
+            handler=_safe_handler(lambda arguments: _client.list_issues(
                 str(arguments["owner"]),
                 str(arguments["repository"]),
                 state=str(arguments.get("state", "open")),
@@ -98,7 +104,7 @@ def build_registry(client: IssueApiClient | None) -> dict[str, Tool]:
                 side_effect=False,
                 integer_limits={"number": (1, 1_000_000)},
             ),
-            handler=_safe_handler(lambda arguments: client.get_issue(
+            handler=_safe_handler(lambda arguments: _client.get_issue(
                 str(arguments["owner"]), str(arguments["repository"]), int(arguments["number"])
             )),
         ),
@@ -117,7 +123,7 @@ def build_registry(client: IssueApiClient | None) -> dict[str, Tool]:
                 required_scopes=WRITE_SCOPES,
                 side_effect=True,
             ),
-            handler=_safe_handler(lambda arguments: client.create_issue(
+            handler=_safe_handler(lambda arguments: _client.create_issue(
                 str(arguments["owner"]),
                 str(arguments["repository"]),
                 title=str(arguments["title"]),
@@ -139,7 +145,7 @@ def build_registry(client: IssueApiClient | None) -> dict[str, Tool]:
                 side_effect=True,
                 integer_limits={"number": (1, 1_000_000)},
             ),
-            handler=_safe_handler(lambda arguments: client.close_issue(
+            handler=_safe_handler(lambda arguments: _client.close_issue(
                 str(arguments["owner"]), str(arguments["repository"]), int(arguments["number"])
             )),
         ),
