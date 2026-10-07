@@ -31,12 +31,6 @@ class Settings(BaseSettings):
     github_token: str = Field(default="", validation_alias="GITHUB_TOKEN")
     github_base_url: str = Field(default="https://api.github.com", validation_alias="GITHUB_BASE_URL")
 
-    # Model Provider (Week 4)
-    model_provider: str = Field(default="ollama", validation_alias="MODEL_PROVIDER")
-    model_name: str = Field(default="qwen3:8b", validation_alias="MODEL_NAME")
-    model_base_url: str = Field(default="http://localhost:11434/v1", validation_alias="MODEL_BASE_URL")
-    model_api_key: str = Field(default="", validation_alias="MODEL_API_KEY")
-
     # Runtime
     default_max_retries: int = Field(default=3, validation_alias="DEFAULT_MAX_RETRIES")
 

@@ -22,10 +22,6 @@ services:
       - DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/agent_course
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_BASE_URL=https://api.github.com
-      - MODEL_PROVIDER=ollama
-      - MODEL_NAME=qwen3:8b
-      - MODEL_BASE_URL=http://host.docker.internal:11434/v1
-      - MODEL_API_KEY=
       - DEFAULT_MAX_RETRIES=3
       # Demo mode: off by default for safety. Set RUNNER_MODE=demo to enable real ToolCall.
       - RUNNER_MODE=test

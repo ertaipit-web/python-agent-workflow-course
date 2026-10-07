@@ -9,8 +9,7 @@ import os
 import sys
 
 # Remove env vars that pydantic-settings would read before test collection
-for _var in ("DATABASE_URL", "GITHUB_TOKEN", "GITHUB_BASE_URL",
-             "MODEL_PROVIDER", "MODEL_NAME", "MODEL_BASE_URL", "MODEL_API_KEY"):
+for _var in ("DATABASE_URL", "GITHUB_TOKEN", "GITHUB_BASE_URL"):
     os.environ.pop(_var, None)
 
 # Clear the lru_cache on get_settings so it doesn't return stale configs

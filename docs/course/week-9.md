@@ -234,7 +234,7 @@ Secrets (environment variables only)
 
 Покажите:
 - `.env.example` с placeholder'ами
-- `DATABASE_URL`, `GITHUB_TOKEN`, `MODEL_PROVIDER`, `MODEL_NAME`
+- `DATABASE_URL`, `GITHUB_TOKEN`
 - Никаких секретов в коде, промптах, коммитах, `.env.example`
 
 **Безопасность GitHub credentials (#10):**

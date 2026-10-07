@@ -47,7 +47,7 @@ cp .env.example .env
 - Metadata: read (требуется GitHub API для валидации токена)
 - Избегайте classic PAT со scope `repo` — он даёт доступ ко всем репозиториям
 
-Опционально: `MODEL_PROVIDER`, `MODEL_NAME` для LLM.
+`ModelClient` — архитектурная часть Week 4, но текущий deterministic Production Layer использует `ScriptedPlanner` и не подключает LLM.
 
 ### 2. Запуск через Docker Compose (рекомендуется)
 
@@ -153,10 +153,6 @@ Liveness probe.
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql+psycopg://postgres:postgres@localhost:5432/agent_course` |
 | `GITHUB_TOKEN` | GitHub Personal Access Token (требуется для demo/production режимов) | `""` (не требуется для `RUNNER_MODE=test`) |
 | `GITHUB_BASE_URL` | GitHub API base URL | `https://api.github.com` |
-| `MODEL_PROVIDER` | Model provider (Week 4) | `ollama` |
-| `MODEL_NAME` | Model name | `qwen3:8b` |
-| `MODEL_BASE_URL` | Model API base URL | `http://localhost:11434/v1` |
-| `MODEL_API_KEY` | Model API key | `` |
 | `SERVICE_HOST` | Bind host | `0.0.0.0` |
 | `SERVICE_PORT` | Bind port | `8000` |
 | `LOG_LEVEL` | Log level | `INFO` |
@@ -296,7 +292,7 @@ POST /tasks → Agent Runtime → ToolCall(create_issue) → Policy → Approval
 
 ## Ограничения (намеренно)
 
-- ❌ ModelClient (Week 4) не подключён — сервис использует `ScriptedPlanner` как deterministic planner. Для реального agent workflow подключите LLM-провайдер через ModelClient.
+- ❌ LLM runtime не подключён — сервис использует `ScriptedPlanner` как deterministic planner. `ModelClient` остаётся возможной точкой расширения из Week 4.
 - ❌ Нет Kubernetes, Kafka, RabbitMQ, Celery
 - ❌ Нет ELK/Grafana/Prometheus stack
 - ❌ Нет Vault/KMS для секретов
